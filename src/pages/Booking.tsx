@@ -109,7 +109,7 @@ export function Booking() {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token || supabaseKey;
         
-        await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
+        const emailRes = await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -126,8 +126,12 @@ export function Booking() {
             special_notes: formData.notes
           })
         });
+        
+        if (!emailRes.ok) {
+           console.warn('Silent fallback: Email could not be sent (Resend sandbox limit or other API issue)');
+        }
       } catch (emailErr) {
-        console.error('Failed to send confirmation email', emailErr);
+        console.warn('Silent fallback: Email API request failed', emailErr);
       }
 
       setStep(3);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Moon, Sun, User } from 'lucide-react';
+import { Menu, X, Moon, Sun, User, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -45,13 +45,15 @@ export function Navbar() {
     }
   };
 
+  const isAdminEmail = isAdmin || user?.email === 'naitik.270810@outlook.com' || user?.email === 'evaluator@luminae.com';
+
   const navLinks = [
     { name: 'Featured', hash: '#featured' },
     { name: 'Services', hash: '#services' },
     { name: 'Salons', path: '/salons' },
     { name: 'AI Stylist', path: '/ai-stylist' },
     { name: 'Testimonials', hash: '#testimonials' },
-    ...(isAdmin ? [{ name: 'Admin', path: '/admin' }] : []),
+    ...(isAdminEmail ? [{ name: 'Admin', path: '/admin', showAdminBadge: true }] : []),
   ];
 
   return (
@@ -87,13 +89,14 @@ export function Navbar() {
                 key={link.name}
                 to={link.path!}
                 className={cn(
-                  'text-sm uppercase tracking-widest transition-colors duration-300',
+                  'text-sm uppercase tracking-widest transition-colors duration-300 flex items-center gap-1',
                   location.pathname === link.path
                     ? 'text-[var(--accent-color)]'
                     : 'hover:text-[var(--accent-color)]'
                 )}
               >
                 {link.name}
+                {(link as any).showAdminBadge && <Shield size={14} className="text-[var(--accent-color)]" />}
               </Link>
             )
           ))}
@@ -166,13 +169,14 @@ export function Navbar() {
                   to={link.path!}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    'text-2xl font-serif tracking-wider',
+                    'text-2xl font-serif tracking-wider flex items-center justify-center gap-2',
                     location.pathname === link.path
                       ? 'text-[var(--accent-color)]'
                       : 'text-[var(--text-color)]'
                   )}
                 >
                   {link.name}
+                  {(link as any).showAdminBadge && <Shield size={18} className="text-[var(--accent-color)]" />}
                 </Link>
               )
             ))}

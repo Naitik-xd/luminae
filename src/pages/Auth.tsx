@@ -65,16 +65,33 @@ export function Auth() {
   return (
     <div className="flex-1 flex w-full">
       {/* Visual Side */}
-      <div className="hidden lg:block w-1/2 relative">
-        <img 
-          src="https://images.unsplash.com/photo-1512496015851-a1fbbfc6d1e4?q=80&w=2000&auto=format&fit=crop" 
-          alt="Luxury Beauty" 
-          className="absolute inset-0 w-full h-full object-cover filter brightness-75"
-        />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute inset-0 p-20 flex flex-col justify-end">
+      <div className="hidden lg:block w-1/2 relative overflow-hidden bg-gradient-to-br from-[#B76E79] to-[#3D0C11] animate-gradient-x auth-bg-gradient">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-serif text-[40rem] text-[#C9A84C] opacity-10 select-none">L</span>
+        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_1px,transparent_1px)]" style={{ backgroundSize: '40px 40px' }} />
+        
+        {/* Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(15)].map((_, i) => (
+             <div 
+               key={i} 
+               className="particle absolute bg-white rounded-full opacity-30" 
+               style={{
+                 left: `${Math.random() * 100}%`,
+                 width: `${Math.random() * 4 + 1}px`,
+                 height: `${Math.random() * 4 + 1}px`,
+                 animationDelay: `${Math.random() * 10}s`,
+                 animationDuration: `${Math.random() * 10 + 10}s`
+               }}
+             />
+          ))}
+        </div>
+
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute inset-0 p-20 flex flex-col justify-end z-10">
           <h2 className="font-serif text-5xl text-white mb-6 leading-tight">
-             Elegance is the only <i className="text-[var(--accent-color)]">beauty</i> <br/>that never fades.
+             Elegance is the only <i className="text-[#C9A84C]">beauty</i> <br/>that never fades.
           </h2>
           <p className="text-white/80 font-light tracking-wide uppercase text-sm">Join the Luminae Collective</p>
         </div>
