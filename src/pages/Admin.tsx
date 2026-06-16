@@ -5,6 +5,8 @@ import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 
+import { Auth } from './Auth';
+
 export function Admin() {
   const { user, loading, isAdmin } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
@@ -30,10 +32,10 @@ export function Admin() {
     fetchBookings();
   }, [user, isAdmin]);
 
-  if (loading || (isAdmin && fetching)) {
-    return <div className="p-20 text-center flex justify-center"><div className="w-8 h-8 border-4 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"></div></div>;
+  if (loading || (user && isAdmin && fetching)) {
+    return <div className="p-20 text-center flex justify-center"><div className="w-8 h-8 border-4 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div></div>;
   }
-  if (!user || !isAdmin) return <Navigate to="/" />;
+  if (!user || !isAdmin) return <Auth />;
 
   const stats = {
     total: bookings.length,

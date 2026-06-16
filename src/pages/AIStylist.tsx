@@ -72,13 +72,15 @@ export function AIStylist() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryInput, setRetryInput] = useState<string | null>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, error]);
 
-  const callGeminiAPI = async (chatHistory: Message[], newPrompt: string) => {
+  const callGeminiAPIWithFallback = async (chatHistory: Message[]) => {
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("Gemini API key is missing. Please configure VITE_GEMINI_API_KEY.");
@@ -89,56 +91,68 @@ export function AIStylist() {
       parts: [{ text: msg.content }]
     }));
 
-    contents.push({
-      role: 'user',
-      parts: [{ text: newPrompt }]
-    });
+    for (let i = 0; i < models.length; i++) {
+      const model = models[i];
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: SYSTEM_CONTEXT }]
+            },
+            contents: contents,
+          }),
+        });
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SYSTEM_CONTEXT }]
-        },
-        contents: contents,
-      }),
-    });
+        if (!response.ok) {
+          throw new Error(`Failed with ${model}`);
+        }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to fetch from Gemini API. Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content.parts.length > 0) {
-      return data.candidates[0].content.parts[0].text;
-    } else {
-      throw new Error("Unexpected answer format from Gemini.");
+        const data = await response.json();
+        if (data.candidates && data.candidates.length > 0 && data.candidates[0].content.parts.length > 0) {
+          return data.candidates[0].content.parts[0].text;
+        } else {
+          throw new Error(`Unexpected format from ${model}`);
+        }
+      } catch (err) {
+        if (i === models.length - 1) {
+          throw err;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
   };
 
-  const handleSend = async (messageText: string) => {
+  const handleSend = async (messageText: string, isRetry = false) => {
     if (!messageText.trim() || isTyping) return;
 
     setError(null);
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: messageText };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    setRetryInput(null);
+    
+    let currentMessages = messages;
+    if (!isRetry) {
+      const userMsg: Message = { id: Date.now().toString(), role: 'user', content: messageText };
+      currentMessages = [...messages, userMsg];
+      setMessages(currentMessages);
+      setInput('');
+    }
+    
     setIsTyping(true);
 
     try {
-      const responseText = await callGeminiAPI(messages, messageText);
+      const responseText = await callGeminiAPIWithFallback(currentMessages);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        content: responseText
+        content: responseText || "I'm having trouble thinking."
       };
       setMessages(prev => [...prev, aiResponse]);
     } catch (err: any) {
-      setError(err.message || "I apologize, but I am unable to connect to my knowledge base right now.");
+      setError("LUMI is taking a quick break, please try again in a few seconds");
+      setRetryInput(messageText);
     } finally {
       setIsTyping(false);
     }
@@ -220,8 +234,18 @@ export function AIStylist() {
           )}
 
           {error && (
-            <div className="text-red-500 text-center text-sm p-4 animate-pulse">
-               {error}
+            <div className="flex flex-col items-center gap-3 p-4">
+              <div className="text-red-500 text-center text-sm animate-pulse">
+                 {error}
+              </div>
+              {retryInput && (
+                <button
+                  onClick={() => handleSend(retryInput, true)}
+                  className="px-6 py-2 border border-[#C9A84C] text-[#C9A84C] text-sm uppercase tracking-widest hover:bg-[#C9A84C] hover:text-black transition-colors rounded-full"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           )}
 

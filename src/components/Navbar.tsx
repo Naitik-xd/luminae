@@ -53,7 +53,7 @@ export function Navbar() {
     { name: 'Salons', path: '/salons' },
     { name: 'AI Stylist', path: '/ai-stylist' },
     { name: 'Testimonials', hash: '#testimonials' },
-    ...(isAdminEmail ? [{ name: 'Admin', path: '/admin', showAdminBadge: true }] : []),
+    { name: 'Admin', path: '/admin', showAdminBadge: true, isSpecial: true },
   ];
 
   return (
@@ -92,7 +92,8 @@ export function Navbar() {
                   'text-sm uppercase tracking-widest transition-colors duration-300 flex items-center gap-1',
                   location.pathname === link.path
                     ? 'text-[var(--accent-color)]'
-                    : 'hover:text-[var(--accent-color)]'
+                    : 'hover:text-[var(--accent-color)]',
+                  (link as any).isSpecial ? 'border border-[#C9A84C]/50 px-3 py-1.5 rounded-sm hover:border-[#C9A84C] hover:bg-[#C9A84C]/5' : ''
                 )}
               >
                 {link.name}

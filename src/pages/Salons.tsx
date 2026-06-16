@@ -74,7 +74,7 @@ export function Salons() {
       </div>
 
       {/* Filters & Search */}
-      <div className="sticky top-[80px] z-30 bg-[var(--bg-color)]/95 backdrop-blur-md border-b border-[var(--border-color)] py-6 px-6">
+      <div className="sticky top-[88px] z-30 bg-[var(--bg-color)] shadow-[0_4px_15px_rgba(0,0,0,0.03)] border-b border-[var(--border-color)] py-6 px-6 transition-colors duration-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 items-center justify-between">
           <div className="relative w-full md:max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--accent-color)]" size={18} />
