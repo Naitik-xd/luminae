@@ -53,7 +53,6 @@ export function Navbar() {
     { name: 'Salons', path: '/salons' },
     { name: 'AI Stylist', path: '/ai-stylist' },
     { name: 'Testimonials', hash: '#testimonials' },
-    { name: 'Admin', path: '/admin', showAdminBadge: true, isSpecial: true },
   ];
 
   return (

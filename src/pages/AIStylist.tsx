@@ -72,87 +72,71 @@ export function AIStylist() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryInput, setRetryInput] = useState<string | null>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping, error]);
 
-  const callGeminiAPIWithFallback = async (chatHistory: Message[]) => {
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  useEffect(() => {
+    console.log("Gemini API Key defined:", !!import.meta.env.VITE_GEMINI_API_KEY);
+  }, []);
+
+  const callGeminiAPI = async (chatHistory: Message[]) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("Gemini API key is missing. Please configure VITE_GEMINI_API_KEY.");
     }
 
-    const contents = chatHistory.slice(1).map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    }));
+    const fullPrompt = SYSTEM_CONTEXT + "\\n\\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\\n");
 
-    for (let i = 0; i < models.length; i++) {
-      const model = models[i];
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: SYSTEM_CONTEXT }]
-            },
-            contents: contents,
-          }),
-        });
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: fullPrompt }] }
+        ]
+      }),
+    });
 
-        if (!response.ok) {
-          throw new Error(`Failed with ${model}`);
-        }
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`API Error: ${response.status} - ${errText}`);
+    }
 
-        const data = await response.json();
-        if (data.candidates && data.candidates.length > 0 && data.candidates[0].content.parts.length > 0) {
-          return data.candidates[0].content.parts[0].text;
-        } else {
-          throw new Error(`Unexpected format from ${model}`);
-        }
-      } catch (err) {
-        if (i === models.length - 1) {
-          throw err;
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    const data = await response.json();
+    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content.parts.length > 0) {
+      return data.candidates[0].content.parts[0].text;
+    } else {
+      throw new Error("Unexpected API response format");
     }
   };
 
-  const handleSend = async (messageText: string, isRetry = false) => {
+  const handleSend = async (messageText: string) => {
     if (!messageText.trim() || isTyping) return;
 
     setError(null);
-    setRetryInput(null);
     
-    let currentMessages = messages;
-    if (!isRetry) {
-      const userMsg: Message = { id: Date.now().toString(), role: 'user', content: messageText };
-      currentMessages = [...messages, userMsg];
-      setMessages(currentMessages);
-      setInput('');
-    }
-    
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: messageText };
+    const currentMessages = [...messages, userMsg];
+    setMessages(currentMessages);
+    setInput('');
     setIsTyping(true);
 
     try {
-      const responseText = await callGeminiAPIWithFallback(currentMessages);
+      const responseText = await callGeminiAPI(currentMessages);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        content: responseText || "I'm having trouble thinking."
+        content: responseText
       };
       setMessages(prev => [...prev, aiResponse]);
     } catch (err: any) {
-      setError("LUMI is taking a quick break, please try again in a few seconds");
-      setRetryInput(messageText);
+      console.error(err);
+      setError(err.message || "Failed to communicate with AI Stylist");
     } finally {
       setIsTyping(false);
     }
@@ -234,19 +218,14 @@ export function AIStylist() {
           )}
 
           {error && (
-            <div className="flex flex-col items-center gap-3 p-4">
-              <div className="text-red-500 text-center text-sm animate-pulse">
-                 {error}
-              </div>
-              {retryInput && (
-                <button
-                  onClick={() => handleSend(retryInput, true)}
-                  className="px-6 py-2 border border-[#C9A84C] text-[#C9A84C] text-sm uppercase tracking-widest hover:bg-[#C9A84C] hover:text-black transition-colors rounded-full"
-                >
-                  Retry
-                </button>
-              )}
-            </div>
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-4 max-w-[90%] md:max-w-[80%] mr-auto">
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-serif text-sm bg-black text-red-500 border border-red-500/30 shadow-md">
+                  !
+                </div>
+                <div className="p-5 rounded-2xl rounded-tl-none bg-[#111] text-red-400 border border-red-500/30 text-sm leading-relaxed shadow-sm font-light">
+                   {error}
+                </div>
+             </motion.div>
           )}
 
           <div ref={endOfMessagesRef} />

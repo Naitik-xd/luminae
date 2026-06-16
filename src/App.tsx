@@ -52,15 +52,6 @@ export default function App() {
               <AnimatedRoutes />
             </main>
             <Footer />
-            
-            {/* Floating Admin Button */}
-            <Link 
-              to="/admin" 
-              className="fixed bottom-6 right-6 z-[100] bg-[#111] border border-[#C9A84C]/30 text-[#C9A84C] px-5 py-3 rounded-full flex items-center gap-2 shadow-[0_5px_15px_rgba(0,0,0,0.3)] hover:scale-105 hover:bg-[#C9A84C] hover:text-black hover:border-[#C9A84C] transition-all duration-300 group"
-            >
-               <Shield size={16} className="group-hover:text-black" />
-               <span className="text-xs uppercase tracking-widest font-medium">Admin Panel</span>
-            </Link>
           </div>
         </BrowserRouter>
       </AuthProvider>

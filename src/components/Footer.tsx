@@ -53,6 +53,12 @@ export function Footer() {
             <Link to="/terms" className="hover:text-[var(--text-color)] transition-colors">Terms</Link>
           </div>
         </div>
+        
+        <div className="mt-8 text-center">
+          <Link to="/admin" className="text-[11px] text-[var(--text-muted)]/50 hover:text-[var(--text-muted)] transition-colors">
+            Admin Access
+          </Link>
+        </div>
       </div>
     </footer>
   );
