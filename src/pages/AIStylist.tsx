@@ -90,15 +90,15 @@ export function AIStylist() {
 
     const fullPrompt = SYSTEM_CONTEXT + "\\n\\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\\n");
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: fullPrompt }] }
-        ]
+        contents: [{
+          parts: [{ text: fullPrompt }]
+        }]
       }),
     });
 
