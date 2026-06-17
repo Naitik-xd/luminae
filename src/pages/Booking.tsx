@@ -132,14 +132,12 @@ export function Booking() {
       
       // Call edge function to send confirmation email
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token || supabaseKey;
-        
-        const emailRes = await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
+        const edgeFunctionUrl = 'https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation';
+        const emailRes = await fetch(edgeFunctionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4aWpteGhydGlteGd2cW9zZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzM2MTgsImV4cCI6MjA5NzE0OTYxOH0.LOf3fEM8x2c7jiCOimVk99XEFZ0LDnMSsGiB6dAhht0'
           },
           body: JSON.stringify({
             customer_name: name,

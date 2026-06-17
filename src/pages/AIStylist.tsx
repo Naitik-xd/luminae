@@ -90,7 +90,7 @@ export function AIStylist() {
       throw new Error("Gemini API key is missing. Please configure VITE_GEMINI_API_KEY.");
     }
 
-    const bookingInstruction = "If the user wants to book, ask them for their name, email, phone number, preferred date, and time. Wait until you have collected ALL this information, then call the createBooking function. Do NOT call createBooking until you have every piece of information.";
+    const bookingInstruction = "If the user wants to book, ask them for their name, email, phone number, preferred date, and time. Wait until you have collected ALL this information, then you MUST output a JSON block exactly in this format starting with CREATE_BOOKING_JSON: {\"customer_name\": \"...\", \"customer_email\": \"...\", \"customer_phone\": \"...\", \"salon_name\": \"...\", \"service_name\": \"...\", \"booking_date\": \"YYYY-MM-DD\", \"booking_time\": \"...\"}";
     const fullPrompt = SYSTEM_CONTEXT + "\\n\\n" + bookingInstruction + "\\n\\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\\n");
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
@@ -101,27 +101,6 @@ export function AIStylist() {
       body: JSON.stringify({
         contents: [{
           parts: [{ text: fullPrompt }]
-        }],
-        tools: [{
-          functionDeclarations: [
-            {
-              name: "createBooking",
-              description: "Creates a booking when all details are collected.",
-              parameters: {
-                type: "OBJECT",
-                properties: {
-                  customer_name: { type: "STRING" },
-                  customer_email: { type: "STRING" },
-                  customer_phone: { type: "STRING" },
-                  salon_name: { type: "STRING" },
-                  service_name: { type: "STRING" },
-                  booking_date: { type: "STRING", description: "YYYY-MM-DD" },
-                  booking_time: { type: "STRING" }
-                },
-                required: ["customer_name", "customer_email", "customer_phone", "salon_name", "service_name", "booking_date", "booking_time"]
-              }
-            }
-          ]
         }]
       }),
     });
@@ -134,16 +113,18 @@ export function AIStylist() {
     const data = await response.json();
     const candidatePart = data.candidates?.[0]?.content?.parts?.[0];
     
-    if (candidatePart?.functionCall) {
-      const call = candidatePart.functionCall;
-      if (call.name === 'createBooking') {
-        const args = call.args;
-        return await handleBooking(args);
-      }
-    }
-
     if (candidatePart?.text) {
-      return candidatePart.text;
+      const textResponse = candidatePart.text;
+      const match = textResponse.match(/CREATE_BOOKING_JSON:\s*(\{.*\})/);
+      if (match) {
+        try {
+          const args = JSON.parse(match[1]);
+          return await handleBooking(args);
+        } catch (e) {
+          console.error("Failed to parse booking JSON", e);
+        }
+      }
+      return textResponse.replace(/CREATE_BOOKING_JSON:\s*\{.*\}/, "");
     } else {
       throw new Error("Unexpected API response format");
     }
@@ -196,11 +177,11 @@ export function AIStylist() {
       }
 
       // 4. Call Edge Function for email (optional but required by prompt instructions)
-      await fetch('https://qydnjcftwvxwkqjyzxqp.supabase.co/functions/v1/send-booking-confirmation', {
+      await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4aWpteGhydGlteGd2cW9zZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzM2MTgsImV4cCI6MjA5NzE0OTYxOH0.LOf3fEM8x2c7jiCOimVk99XEFZ0LDnMSsGiB6dAhht0'
         },
         body: JSON.stringify({
           customer_name: args.customer_name,

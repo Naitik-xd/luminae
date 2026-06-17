@@ -138,11 +138,11 @@ export function Admin() {
 
       if (data && data.length > 0) {
         const updatedBooking = data[0];
-        fetch('https://qydnjcftwvxwkqjyzxqp.supabase.co/functions/v1/send-status-update', {
+        fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-status-update', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4aWpteGhydGlteGd2cW9zZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzM2MTgsImV4cCI6MjA5NzE0OTYxOH0.LOf3fEM8x2c7jiCOimVk99XEFZ0LDnMSsGiB6dAhht0'
           },
           body: JSON.stringify({
             customer_name: updatedBooking.customer_name,
