@@ -101,7 +101,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'onboarding@resend.dev',
+        from: 'LUMINAE Beauty <onboarding@resend.dev>',
         to: customer_email,
         subject: 'Your LUMINAE Booking is Confirmed ✨',
         html: htmlBody,

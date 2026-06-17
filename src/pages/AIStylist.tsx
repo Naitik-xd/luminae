@@ -75,6 +75,17 @@ export function AIStylist() {
   const [error, setError] = useState<string | null>(null);
   const [messageTimestamps, setMessageTimestamps] = useState<number[]>([]);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -220,6 +231,9 @@ export function AIStylist() {
     const currentMessages = [...messages, userMsg];
     setMessages(currentMessages);
     setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'; // Reset height
+    }
     setIsTyping(true);
 
     try {
@@ -240,7 +254,24 @@ export function AIStylist() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSend(input);
+    if (input.trim()) {
+      handleSend(input);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(input);
+    }
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
   };
 
   return (
@@ -342,19 +373,23 @@ export function AIStylist() {
              ))}
            </div>
            
-           <form onSubmit={handleSubmit} className="relative flex items-center">
-              <input 
-                type="text"
+           <form onSubmit={handleSubmit} className="relative flex items-end">
+              <textarea 
+                ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
                 placeholder="Ask LUMI to transform your look..."
-                className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-full py-4 pl-6 pr-16 focus:outline-none focus:border-[#C9A84C] focus:shadow-[0_0_10px_#C9A84C33] transition-all text-sm font-light z-10"
+                rows={1}
+                enterKeyHint={isMobile ? "enter" : undefined}
+                className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-[24px] py-4 pl-6 pr-16 focus:outline-none focus:border-[#C9A84C] focus:shadow-[0_0_10px_#C9A84C33] transition-all text-sm font-light z-10 resize-none overflow-y-auto"
+                style={{ minHeight: '54px', maxHeight: '150px' }}
               />
               <button 
                 type="submit"
                 disabled={!input.trim() || isTyping}
                 className={cn(
-                  "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-all z-20",
+                  "absolute right-2 bottom-[7px] w-10 h-10 rounded-full flex items-center justify-center transition-all z-20",
                   !input.trim() || isTyping 
                     ? "bg-[var(--border-color)] text-[var(--text-muted)] opacity-50" 
                     : "bg-[#C9A84C] text-black shadow-[0_0_15px_#C9A84C] hover:scale-105"
@@ -363,7 +398,14 @@ export function AIStylist() {
                 <CornerDownLeft size={16} />
               </button>
            </form>
-           <p className="text-center text-[10px] text-[var(--text-muted)] mt-5 uppercase tracking-widest font-light">
+           
+           {!isMobile && (
+             <p className="hidden md:block text-center text-[10px] text-[var(--text-muted)] mt-2 font-light">
+               Press Enter to send, Shift+Enter for new line
+             </p>
+           )}
+           
+           <p className="text-center text-[10px] text-[var(--text-muted)] mt-3 uppercase tracking-widest font-light">
              LUMI may produce inaccurate information. Please verify directly with the salon.
            </p>
         </div>
