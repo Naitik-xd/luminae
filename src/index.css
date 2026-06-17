@@ -64,14 +64,13 @@
 
 @keyframes heroGradient {
   0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 
 .hero-gradient-bg {
-  background: linear-gradient(-45deg, #3D0C11, #1A0A0E, #C9A84C, #2E080D);
-  background-size: 400% 400%;
-  animation: heroGradient 25s ease infinite;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0e 30%, #0d0508 60%, #0a0a0a 100%);
+  background-size: 200% 200%;
+  animation: heroGradient 8s ease infinite alternate;
 }
 
 .texture-overlay {

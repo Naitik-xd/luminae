@@ -46,6 +46,101 @@ export function Home() {
         },
       });
     }
+
+    // Canvas Particles
+    const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        let particlesArray: any[] = [];
+        let animationFrameId: number;
+
+        const resizeCanvas = () => {
+          if (!canvas) return;
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const colors = [
+          (opacity: number) => `rgba(201, 168, 76, ${opacity})`,
+          (opacity: number) => `rgba(183, 110, 121, ${opacity})`,
+          (opacity: number) => `rgba(255, 255, 255, ${opacity})`
+        ];
+
+        class Particle {
+          x: number;
+          y: number;
+          radius: number;
+          baseRadius: number;
+          color: (opacity: number) => string;
+          opacity: number;
+          speedY: number;
+          speedX: number;
+          pulseSpeed: number;
+          pulseAngle: number;
+
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.baseRadius = Math.random() * 2 + 0.5; // 0.5 to 2.5
+            this.radius = this.baseRadius;
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+            this.opacity = Math.random() * 0.5 + 0.1; // 0.1 to 0.6
+            this.speedY = Math.random() * 0.3 + 0.1; // 0.1 to 0.4
+            this.speedX = (Math.random() - 0.5) * 0.5;
+            this.pulseSpeed = Math.random() * 0.05 + 0.01;
+            this.pulseAngle = Math.random() * Math.PI * 2;
+          }
+
+          update() {
+            this.y -= this.speedY;
+            this.x += this.speedX;
+            
+            this.pulseAngle += this.pulseSpeed;
+            this.radius = this.baseRadius + Math.sin(this.pulseAngle) * (this.baseRadius * 0.5);
+
+            if (this.y < -10) {
+              this.y = canvas.height + 10;
+              this.x = Math.random() * canvas.width;
+            }
+          }
+
+          draw() {
+            if (!ctx) return;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color(this.opacity);
+            ctx.fill();
+          }
+        }
+
+        const init = () => {
+          particlesArray = [];
+          for (let i = 0; i < 120; i++) {
+            particlesArray.push(new Particle());
+          }
+        };
+
+        const animate = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < particlesArray.length; i++) {
+            particlesArray[i].update();
+            particlesArray[i].draw();
+          }
+          animationFrameId = requestAnimationFrame(animate);
+        };
+
+        init();
+        animate();
+
+        return () => {
+          window.removeEventListener('resize', resizeCanvas);
+          cancelAnimationFrame(animationFrameId);
+        };
+      }
+    }
   }, []);
 
   return (
@@ -57,50 +152,61 @@ export function Home() {
       className="flex flex-col flex-1"
     >
       {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden pb-40 pt-20">
-        {/* Background - Cinematic Animated Gradient */}
-        <motion.div style={{ y }} className="absolute -inset-y-32 inset-x-0 z-0">
-          <div className="absolute inset-0 hero-gradient-bg z-0" />
-          <div className="absolute inset-0 texture-overlay z-10" />
-        </motion.div>
+      <section ref={heroRef} className="relative w-full overflow-hidden flex flex-col items-center justify-center pb-[80px] hero-gradient-bg" style={{ minHeight: '100vh' }}>
+        
+        {/* Glow orbs behind particles */}
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-[#b76e79] rounded-full blur-[120px] opacity-[0.08] pointer-events-none z-0" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#c9a84c] rounded-full blur-[120px] opacity-[0.08] pointer-events-none z-0" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-white rounded-full blur-[120px] opacity-[0.08] pointer-events-none z-0" />
 
-        {/* Floating Particles (CSS handled, simple divs here) */}
-        <div className="absolute inset-0 z-10 pointer-events-none opacity-40">
-           <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-[#C9A84C] shadow-[0_0_15px_#C9A84C] animate-ping" />
-           <div className="absolute top-1/3 right-1/4 w-3 h-3 rounded-full bg-[#C9A84C] shadow-[0_0_20px_#C9A84C] animate-pulse delay-75" />
-           <div className="absolute bottom-1/3 left-1/3 w-2 h-2 rounded-full bg-[#C9A84C] shadow-[0_0_15px_#C9A84C] animate-bounce" />
-           <div className="absolute bottom-1/4 right-1/3 w-1.5 h-1.5 rounded-full bg-[#C9A84C] shadow-[0_0_10px_#C9A84C] animate-ping delay-150" />
-           <div className="absolute top-2/4 left-1/2 w-2 h-2 rounded-full bg-[#C9A84C] shadow-[0_0_15px_#C9A84C] animate-pulse delay-300" />
-        </div>
+        <canvas id="hero-canvas" className="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
 
-        <div className="relative z-20 text-center px-6 flex flex-col items-center justify-between gap-8 h-full place-content-center my-auto">
-          <motion.div
-             initial={{ opacity: 0, scale: 0.9 }}
-             animate={{ opacity: 1, scale: 1 }}
-             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1 ref={textRef} className="font-serif text-5xl md:text-7xl lg:text-8xl text-white tracking-widest leading-tight drop-shadow-2xl">
-              Find Your <i className="text-[var(--accent-color)]">Glow</i> <br /> in Delhi
-            </h1>
-          </motion.div>
-          <motion.p 
+        <div className="relative z-20 text-center px-6 flex flex-col items-center justify-center gap-6 h-full w-full mt-10">
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="text-white/80 font-light text-lg md:text-xl max-w-2xl mx-auto"
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-[#C9A84C] text-[12px] tracking-[0.3em] font-medium uppercase drop-shadow-md"
           >
-            Curated luxury bridal and beauty experiences. Book the city's finest stylists with ease.
+            EST. 2026 · DELHI
           </motion.p>
+          
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="font-serif text-white font-normal leading-tight mx-auto drop-shadow-2xl"
+            style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
+          >
+            Find Your Glow in Delhi
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="text-[#B76E79] font-serif italic text-xl md:text-2xl mt-[-10px] drop-shadow-lg"
+          >
+            Delhi's Premier Bridal Beauty Experience
+          </motion.p>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="flex flex-col md:flex-row items-center justify-center gap-6 mt-6 w-full max-w-md md:max-w-none mx-auto"
           >
             <Link 
               to="/salons" 
-              className="px-8 py-4 bg-[var(--accent-color)] text-white hover:bg-[var(--accent-hover)] transition-all duration-300 tracking-widest uppercase text-sm font-medium border border-transparent hover:border-white shadow-[0_0_20px_rgba(183,110,121,0.4)] block mt-4"
+              className="w-full md:w-auto px-10 py-4 bg-[#C9A84C] text-[#0A0A0A] hover:bg-[#D4B35E] transition-all duration-300 tracking-widest uppercase text-sm font-medium shadow-[0_0_15px_rgba(201,168,76,0.3)] hover:shadow-[0_0_25px_rgba(201,168,76,0.6)] rounded-[2px] text-center"
             >
               Explore Salons
+            </Link>
+            <Link 
+              to="/ai-stylist" 
+              className="w-full md:w-auto px-10 py-4 bg-transparent text-[#FFFFFF] hover:bg-[#C9A84C]/10 transition-all duration-300 tracking-widest uppercase text-sm font-medium border border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.1)] hover:shadow-[0_0_20px_rgba(201,168,76,0.4)] rounded-[2px] text-center"
+            >
+              Meet LUMI
             </Link>
           </motion.div>
         </div>
@@ -109,8 +215,8 @@ export function Home() {
         <motion.div 
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
-           transition={{ delay: 1, duration: 1 }}
-           className="absolute bottom-[32px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 mt-[40px]"
+           transition={{ delay: 2, duration: 1 }}
+           className="absolute bottom-[24px] left-[50%] -translate-x-1/2 z-20 flex flex-col items-center gap-2"
         >
           <span className="text-white/50 text-xs tracking-widest uppercase">Scroll</span>
           <div className="w-[1px] h-12 bg-white/30 relative overflow-hidden">
