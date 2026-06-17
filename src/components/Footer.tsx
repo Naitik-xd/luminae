@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Twitter, Facebook, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useTheme } from '../context/ThemeContext';
 
 export function Footer() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const { theme } = useTheme();
 
   const closeModal = () => setActiveModal(null);
 
@@ -78,10 +80,25 @@ export function Footer() {
             </div>
           </div>
           
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center flex flex-col items-center">
             <Link to="/admin" className="text-[11px] text-[var(--text-muted)]/50 hover:text-[var(--text-muted)] transition-colors">
               Admin Access
             </Link>
+            <p 
+              style={{
+                fontSize: '11px',
+                color: theme === 'light' ? 'rgba(100,100,100,0.6)' : 'rgba(150,150,150,0.7)',
+                textAlign: 'center',
+                maxWidth: '600px',
+                margin: '8px auto 0 auto',
+                lineHeight: 1.6,
+                fontStyle: 'normal',
+                borderTop: '1px solid rgba(150,150,150,0.15)',
+                paddingTop: '12px'
+              }}
+            >
+              ⚠️ This platform is built for SuperXgen AI Startup Buildathon 2026 and is not a real commercial service. All salon listings, bookings and features are for demonstration purposes only.
+            </p>
           </div>
         </div>
       </footer>
