@@ -38,7 +38,7 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
     }
   }, [formData.salon_id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const createBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
@@ -55,23 +55,8 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
       const selectedSalonName = selectedSalon?.name || '';
       const selectedServiceName = selectedService?.name || '';
 
-      console.log('Fetching Salon:', selectedSalonName);
-      const { data: salonData, error: salonError } = await supabase.from('salons').select('id, name').ilike('name', '%' + selectedSalonName + '%').single();
-      console.log('Salon Result:', salonData, salonError);
-
-      if (salonError || !salonData) {
-        throw new Error('Salon not found');
-      }
-      const salonId = salonData.id;
-
-      console.log('Fetching Service:', selectedServiceName, 'for salon:', salonId);
-      const { data: serviceData, error: serviceError } = await supabase.from('services').select('id, name').eq('salon_id', salonId).ilike('name', '%' + selectedServiceName + '%').single();
-      console.log('Service Result:', serviceData, serviceError);
-
-      if (serviceError || !serviceData) {
-        throw new Error('Service not found');
-      }
-      const serviceId = serviceData.id;
+      const salonId = formData.salon_id;
+      const serviceId = formData.service_id;
 
       console.log('Inserting booking');
       const { data: bookingData, error: bookingError } = await supabase
@@ -92,9 +77,12 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
       
       console.log('Booking Insert Result:', bookingData, bookingError);
 
-      if (bookingError || !bookingData) throw new Error("Could not save booking.");
+      if (bookingError || !bookingData) {
+         throw new Error(`Could not save booking. ${bookingError?.message || ''}`);
+      }
 
-      await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
+      console.log('Sending email confirmation fetch request...');
+      const response = await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,15 +92,16 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
           customer_name: formData.customer_name,
           customer_email: formData.customer_email,
           customer_phone: formData.customer_phone,
-          salon_name: selectedSalon?.name,
-          service_name: selectedService?.name,
+          salon_name: selectedSalonName,
+          service_name: selectedServiceName,
           booking_date: formData.booking_date,
           booking_time: formData.booking_time,
-          special_notes: formData.special_notes
+          special_notes: formData.special_notes || ''
         })
-      }).catch(err => console.error("Email failed:", err));
+      });
+      console.log('Email edge function response status:', response.status);
 
-      onSuccess(`Your appointment has been booked successfully! Here are your details:\n\n**Salon:** ${selectedSalon?.name}\n**Service:** ${selectedService?.name}\n**Date:** ${formData.booking_date} at ${formData.booking_time}\n**Booking ID:** ${bookingData.id.slice(0,8)}`);
+      onSuccess(`Your appointment has been booked successfully! Here are your details:\n\n**Salon:** ${selectedSalonName}\n**Service:** ${selectedServiceName}\n**Date:** ${formData.booking_date} at ${formData.booking_time}\n**Booking ID:** ${bookingData.id.slice(0,8)}`);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -124,7 +113,7 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
   const labelClass = "block text-xs uppercase tracking-widest text-[#2C1810] dark:text-[#F5F5F5] mb-1";
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4 p-4 border border-[#E8D5C4] dark:border-[#3A3A3A] bg-[#FFF9F7] dark:bg-[#1A1A1A] rounded-xl relative overflow-hidden">
+    <form onSubmit={createBooking} className="mt-4 flex flex-col gap-4 p-4 border border-[#E8D5C4] dark:border-[#3A3A3A] bg-[#FFF9F7] dark:bg-[#1A1A1A] rounded-xl relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent opacity-50" />
       <h3 className="font-serif text-lg text-[#C9A84C]">Booking Details</h3>
       

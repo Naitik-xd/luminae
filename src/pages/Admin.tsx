@@ -19,12 +19,22 @@ export function Admin() {
 
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableWrapperRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(1000);
 
   useEffect(() => {
     const topScroll = topScrollRef.current;
     const tableWrapper = tableWrapperRef.current;
 
     if (!topScroll || !tableWrapper) return;
+
+    const updateWidth = () => {
+      if (tableWrapper.firstChild) {
+        setTableWidth((tableWrapper.firstChild as HTMLElement).scrollWidth);
+      }
+    };
+    
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
 
     const handleTopScroll = () => {
       tableWrapper.scrollLeft = topScroll.scrollLeft;
@@ -38,6 +48,7 @@ export function Admin() {
     tableWrapper.addEventListener('scroll', handleTableScroll);
 
     return () => {
+      window.removeEventListener('resize', updateWidth);
       topScroll.removeEventListener('scroll', handleTopScroll);
       tableWrapper.removeEventListener('scroll', handleTableScroll);
     };
@@ -375,7 +386,7 @@ export function Admin() {
                 scrollbarWidth: 'thin'
               }}
             >
-              <div style={{ width: '1000px', height: '1px' }}></div>
+              <div style={{ width: `${tableWidth}px`, height: '1px' }}></div>
             </div>
             <div 
               ref={tableWrapperRef}
