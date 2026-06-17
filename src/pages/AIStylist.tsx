@@ -72,10 +72,11 @@ export function AIStylist() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [messageTimestamps, setMessageTimestamps] = useState<number[]>([]);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, isTyping, error]);
 
   useEffect(() => {
@@ -118,6 +119,16 @@ export function AIStylist() {
   const handleSend = async (messageText: string) => {
     if (!messageText.trim() || isTyping) return;
 
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    const recentMessages = messageTimestamps.filter(t => t > oneMinuteAgo);
+    
+    if (recentMessages.length >= 10) {
+      setError("Please slow down, LUMI needs a moment to breathe.");
+      return;
+    }
+
+    setMessageTimestamps([...recentMessages, now]);
     setError(null);
     
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: messageText };

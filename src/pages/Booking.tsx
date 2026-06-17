@@ -85,17 +85,43 @@ export function Booking() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+    const phone = formData.phone.trim();
+    const notes = formData.notes.trim();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Invalid email format');
+      return;
+    }
+
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(phone)) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      toast.error('Booking date cannot be in the past');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.from('bookings').insert({
-        customer_name: formData.name,
-        customer_email: formData.email,
-        customer_phone: formData.phone,
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone,
         salon_id: formData.salon_id,
         service_id: formData.service_id,
         booking_date: formData.date,
         booking_time: formData.time,
-        special_notes: formData.notes,
+        special_notes: notes,
         status: 'pending'
       });
       if (error) throw error;
@@ -116,14 +142,14 @@ export function Booking() {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            customer_name: formData.name,
-            customer_email: formData.email,
-            customer_phone: formData.phone,
+            customer_name: name,
+            customer_email: email,
+            customer_phone: phone,
             salon_name: salonName,
             service_name: serviceName,
             booking_date: formData.date,
             booking_time: formData.time,
-            special_notes: formData.notes
+            special_notes: notes
           })
         });
         

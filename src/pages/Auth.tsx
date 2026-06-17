@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 
@@ -12,6 +12,7 @@ export function Auth() {
   const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +24,7 @@ export function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in successfully!");
-        navigate('/');
+        navigate(location.state?.from || '/');
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
@@ -37,7 +38,7 @@ export function Auth() {
         }
         
         toast.success("Account created successfully!");
-        navigate('/');
+        navigate(location.state?.from || '/');
       }
     } catch (err: any) {
       setError(err.message);
@@ -52,7 +53,7 @@ export function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: window.location.origin + (location.state?.from || '/'),
         }
       });
       if (error) throw error;

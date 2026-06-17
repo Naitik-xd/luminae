@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowRight, Star } from 'lucide-react';
-import { salonsData } from '../data/salons';
+import { supabase } from '../lib/supabase';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,8 +19,19 @@ export function Home() {
   const textRef = useRef<HTMLHeadingElement>(null);
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
+  const navigate = useNavigate();
+
+  const [featuredSalons, setFeaturedSalons] = useState<any[]>([]);
 
   useEffect(() => {
+    async function loadFeatured() {
+      const { data } = await supabase.from('salons').select('*').eq('is_featured', true).limit(6);
+      if (data) {
+        setFeaturedSalons(data);
+      }
+    }
+    loadFeatured();
+
     // GSAP Scroll Effect for Hero
     if (textRef.current) {
       gsap.to(textRef.current, {
@@ -46,7 +57,7 @@ export function Home() {
       className="flex flex-col flex-1"
     >
       {/* Hero Section */}
-      <section ref={heroRef} className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden pb-40 pt-20">
         {/* Background - Cinematic Animated Gradient */}
         <motion.div style={{ y }} className="absolute -inset-y-32 inset-x-0 z-0">
           <div className="absolute inset-0 hero-gradient-bg z-0" />
@@ -62,13 +73,13 @@ export function Home() {
            <div className="absolute top-2/4 left-1/2 w-2 h-2 rounded-full bg-[#C9A84C] shadow-[0_0_15px_#C9A84C] animate-pulse delay-300" />
         </div>
 
-        <div className="relative z-20 text-center px-6 flex flex-col items-center">
+        <div className="relative z-20 text-center px-6 flex flex-col items-center justify-between gap-8 h-full place-content-center my-auto">
           <motion.div
              initial={{ opacity: 0, scale: 0.9 }}
              animate={{ opacity: 1, scale: 1 }}
              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h1 ref={textRef} className="font-serif text-5xl md:text-7xl lg:text-8xl text-white tracking-widest leading-tight mb-6 drop-shadow-2xl">
+            <h1 ref={textRef} className="font-serif text-5xl md:text-7xl lg:text-8xl text-white tracking-widest leading-tight drop-shadow-2xl">
               Find Your <i className="text-[var(--accent-color)]">Glow</i> <br /> in Delhi
             </h1>
           </motion.div>
@@ -76,7 +87,7 @@ export function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="text-white/80 font-light text-lg md:text-xl max-w-2xl mx-auto mb-10"
+            className="text-white/80 font-light text-lg md:text-xl max-w-2xl mx-auto"
           >
             Curated luxury bridal and beauty experiences. Book the city's finest stylists with ease.
           </motion.p>
@@ -87,7 +98,7 @@ export function Home() {
           >
             <Link 
               to="/salons" 
-              className="px-8 py-4 bg-[var(--accent-color)] text-white hover:bg-[var(--accent-hover)] transition-all duration-300 tracking-widest uppercase text-sm font-medium border border-transparent hover:border-white shadow-[0_0_20px_rgba(183,110,121,0.4)]"
+              className="px-8 py-4 bg-[var(--accent-color)] text-white hover:bg-[var(--accent-hover)] transition-all duration-300 tracking-widest uppercase text-sm font-medium border border-transparent hover:border-white shadow-[0_0_20px_rgba(183,110,121,0.4)] block mt-4"
             >
               Explore Salons
             </Link>
@@ -99,7 +110,7 @@ export function Home() {
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
            transition={{ delay: 1, duration: 1 }}
-           className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
+           className="absolute bottom-[32px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 mt-[40px]"
         >
           <span className="text-white/50 text-xs tracking-widest uppercase">Scroll</span>
           <div className="w-[1px] h-12 bg-white/30 relative overflow-hidden">
@@ -126,7 +137,7 @@ export function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Featured Cards */}
-          {salonsData.slice(0, 3).map((salon, idx) => (
+          {featuredSalons.map((salon, idx) => (
              <Link key={salon.id} to={`/salons/${salon.id}`} className="block h-full">
                <motion.div 
                  initial={{ opacity: 0, y: 30 }}
@@ -137,7 +148,7 @@ export function Home() {
                >
                  <div className="relative aspect-[3/4] overflow-hidden mb-6">
                    <img 
-                     src={salon.image}
+                     src={salon.image_url}
                      alt={salon.name} 
                      className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-700 ease-out"
                    />
@@ -147,7 +158,7 @@ export function Home() {
                  <p className="text-[var(--text-muted)] text-sm mb-3">{salon.area}</p>
                  <div className="flex items-center gap-1 text-[var(--accent-color)] text-sm mt-auto">
                    <Star size={14} fill="currentColor" />
-                   <span>{salon.rating} ({salon.reviews} reviews) - {salon.priceRange}</span>
+                   <span>{salon.rating} ({salon.reviews} reviews) - {salon.price_range}</span>
                  </div>
                </motion.div>
              </Link>

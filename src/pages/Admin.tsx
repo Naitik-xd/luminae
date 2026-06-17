@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
-import { Calendar, CheckCircle2, Clock, CheckSquare, LogOut } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, CheckSquare, LogOut, RefreshCw } from 'lucide-react';
 
 export function Admin() {
   const [session, setSession] = useState<any>(null);
   const [isAdminLocally, setIsAdminLocally] = useState<boolean>(false);
+  const [accessDenied, setAccessDenied] = useState<boolean>(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,6 +15,7 @@ export function Admin() {
 
   const [bookings, setBookings] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
@@ -31,6 +33,7 @@ export function Admin() {
         checkAdmin(newSession.user.email);
       } else {
         setIsAdminLocally(false);
+        setAccessDenied(false);
         setBookings([]);
       }
     });
@@ -38,31 +41,44 @@ export function Admin() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (isAdminLocally) {
+      const channel = supabase.channel('bookings-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+          fetchAllBookings();
+        })
+        .subscribe();
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isAdminLocally]);
+
   const checkAdmin = async (userEmail: string | undefined) => {
     if (!userEmail) return;
     
     // Hardcoded bypass for ease of use in demo environment
     if (userEmail === 'naitik.270810@outlook.com' || userEmail === 'evaluator@luminae.com') {
       setIsAdminLocally(true);
-      fetchBookings();
+      setAccessDenied(false);
+      fetchAllBookings();
       return;
     }
 
     try {
       const { data, error } = await supabase.from('admins').select('*').eq('email', userEmail).single();
       if (error || !data) {
-        toast.error('Access Denied. You are not authorized.');
-        await supabase.auth.signOut();
         setIsAdminLocally(false);
+        setAccessDenied(true);
         setDataLoading(false);
       } else {
         setIsAdminLocally(true);
-        fetchBookings();
+        setAccessDenied(false);
+        fetchAllBookings();
       }
     } catch (e) {
-      toast.error('Access Denied. You are not authorized.');
-      await supabase.auth.signOut();
       setIsAdminLocally(false);
+      setAccessDenied(true);
       setDataLoading(false);
     }
   };
@@ -87,16 +103,17 @@ export function Admin() {
     await supabase.auth.signOut();
   };
 
-  const fetchBookings = async () => {
+  const fetchAllBookings = async () => {
     setDataLoading(true);
     try {
       const { data, error } = await supabase
         .from('bookings')
-        .select('*, salons(name), services(name)')
+        .select('id, customer_name, customer_email, customer_phone, booking_date, booking_time, special_notes, status, created_at, salons(name), services(name)')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
       setBookings(data || []);
+      setLastFetched(new Date());
     } catch (err: any) {
       toast.error('Failed to load bookings');
     } finally {
@@ -107,14 +124,47 @@ export function Admin() {
 
   const updateStatus = async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
-      if (error) throw error;
+      const { data, error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id).select();
+      
+      console.log('Update Status Data:', data);
+      console.log('Update Status Error:', error);
+      
+      if (error) {
+        toast.error(error.message);
+        throw error;
+      }
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
       toast.success('Status Updated');
     } catch (err: any) {
-      toast.error('Failed to update status');
+      // Handled above
     }
   };
+
+  if (accessDenied) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-88px)] bg-[var(--bg-color)]">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm p-8 text-center border border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xl"
+        >
+          <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-500 mx-auto flex items-center justify-center mb-6">
+            <LogOut size={24} />
+          </div>
+          <h2 className="font-serif text-2xl mb-4 text-[#C9A84C]">Access Denied</h2>
+          <p className="text-[var(--text-muted)] text-sm mb-8 leading-relaxed">
+            You do not have administrator privileges to view this portal.
+          </p>
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="px-8 py-3 bg-[var(--accent-color)] text-white hover:bg-[var(--accent-hover)] transition-all uppercase tracking-widest text-xs font-medium w-full"
+          >
+            Go Back Home
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (!session || !isAdminLocally) {
     return (
@@ -184,16 +234,25 @@ export function Admin() {
           <h1 className="font-serif text-3xl md:text-4xl mb-2 text-[#C9A84C]">LUMINAE Admin Dashboard</h1>
           <p className="text-[var(--text-muted)] font-light tracking-wide text-sm md:text-base">Manage Platform Bookings</p>
         </div>
-        <button 
-          onClick={handleLogout}
-          className="mt-6 md:mt-0 flex items-center gap-2 text-sm uppercase tracking-widest text-[var(--text-muted)] hover:text-red-500 transition-colors"
-        >
-          <LogOut size={16} /> Logout
-        </button>
+        <div className="flex items-center gap-6 mt-6 md:mt-0">
+          <button 
+            onClick={fetchAllBookings}
+            disabled={dataLoading}
+            className="flex items-center gap-2 text-sm uppercase tracking-widest text-[#C9A84C] hover:text-[#b0903b] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={dataLoading ? "animate-spin" : ""} /> Refresh
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-sm uppercase tracking-widest text-[var(--text-muted)] hover:text-red-500 transition-colors"
+          >
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-4">
          <div className="border border-[var(--border-color)] bg-[var(--card-bg)] p-6 flex flex-col justify-between shadow-sm">
            <div className="flex justify-between items-center mb-6">
              <h3 className="text-[var(--text-muted)] text-xs tracking-widest uppercase">Total Bookings</h3>
@@ -223,6 +282,11 @@ export function Admin() {
            <p className="font-serif text-5xl">{stats.completed}</p>
          </div>
       </div>
+      {lastFetched && (
+        <div className="text-right text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-8">
+          Last updated: {lastFetched.toLocaleTimeString()}
+        </div>
+      )}
 
       {/* Table */}
       <div className="border border-[var(--border-color)] bg-[var(--card-bg)] shadow-md overflow-hidden">
