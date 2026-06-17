@@ -136,7 +136,7 @@ export function Admin() {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
       toast.success('Status Updated');
 
-      if (data && data.length > 0) {
+      if (data && data.length > 0 && ['confirmed', 'cancelled', 'completed'].includes(newStatus)) {
         const updatedBooking = data[0];
         fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-status-update', {
           method: 'POST',
