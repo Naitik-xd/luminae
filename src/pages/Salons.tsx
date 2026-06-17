@@ -134,7 +134,7 @@ export function Salons() {
                 <motion.div
                   key={salon.id}
                   layout
-                  variants={itemVariants}
+                  variants={itemVariants as any}
                   exit={{ opacity: 0, scale: 0.9 }}
                 >
                   <Link to={`/salons/${salon.id}`} className="block h-full cursor-pointer group">

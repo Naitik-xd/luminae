@@ -53,7 +53,7 @@ export function Home() {
       initial="initial"
       animate="in"
       exit="out"
-      variants={pageVariants}
+      variants={pageVariants as any}
       className="flex flex-col flex-1"
     >
       {/* Hero Section */}

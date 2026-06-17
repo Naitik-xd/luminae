@@ -7,6 +7,157 @@ import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabase';
 
+function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (summary: string) => void, userEmail: string, userName: string }) {
+  const [salons, setSalons] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  
+  const [formData, setFormData] = useState({
+    customer_name: userName || '',
+    customer_email: userEmail || '',
+    customer_phone: '',
+    salon_id: '',
+    service_id: '',
+    booking_date: '',
+    booking_time: '',
+    special_notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const timeSlots = ["10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM"];
+
+  useEffect(() => {
+    supabase.from('salons').select('id, name').order('name').then(({ data }) => setSalons(data || []));
+  }, []);
+
+  useEffect(() => {
+    if (formData.salon_id) {
+      supabase.from('services').select('id, name').eq('salon_id', formData.salon_id).order('name').then(({ data }) => setServices(data || []));
+    } else {
+      setServices([]);
+    }
+  }, [formData.salon_id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    if (!formData.customer_name || !formData.customer_email || !formData.customer_phone || !formData.salon_id || !formData.service_id || !formData.booking_date || !formData.booking_time) {
+      setError('Please fill all required fields.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const selectedSalon = salons.find(s => s.id === formData.salon_id);
+      const selectedService = services.find(s => s.id === formData.service_id);
+
+      const { data: bookingData, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          customer_name: formData.customer_name,
+          customer_email: formData.customer_email,
+          customer_phone: formData.customer_phone,
+          salon_id: formData.salon_id,
+          service_id: formData.service_id,
+          booking_date: formData.booking_date,
+          booking_time: formData.booking_time,
+          status: 'pending',
+          special_notes: formData.special_notes
+        })
+        .select()
+        .single();
+
+      if (bookingError || !bookingData) throw new Error("Could not save booking.");
+
+      await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-booking-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4aWpteGhydGlteGd2cW9zZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzM2MTgsImV4cCI6MjA5NzE0OTYxOH0.LOf3fEM8x2c7jiCOimVk99XEFZ0LDnMSsGiB6dAhht0'
+        },
+        body: JSON.stringify({
+          customer_name: formData.customer_name,
+          customer_email: formData.customer_email,
+          customer_phone: formData.customer_phone,
+          salon_name: selectedSalon?.name,
+          service_name: selectedService?.name,
+          booking_date: formData.booking_date,
+          booking_time: formData.booking_time,
+          special_notes: formData.special_notes
+        })
+      }).catch(err => console.error("Email failed:", err));
+
+      onSuccess(`Your appointment has been booked successfully! Here are your details:\n\n**Salon:** ${selectedSalon?.name}\n**Service:** ${selectedService?.name}\n**Date:** ${formData.booking_date} at ${formData.booking_time}\n**Booking ID:** ${bookingData.id.slice(0,8)}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const inputClass = "w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md py-2 px-3 focus:outline-none focus:border-[#C9A84C] text-sm";
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4 p-4 border border-[var(--border-color)] bg-[var(--card-bg)] rounded-xl relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent opacity-50" />
+      <h3 className="font-serif text-lg text-[#C9A84C]">Booking Details</h3>
+      
+      {error && <div className="text-red-500 text-xs">{error}</div>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Full Name</label>
+          <input type="text" value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: e.target.value})} className={inputClass} required />
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Email</label>
+          <input type="email" value={formData.customer_email} onChange={e => setFormData({...formData, customer_email: e.target.value})} className={inputClass} required />
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Phone</label>
+          <input type="tel" value={formData.customer_phone} onChange={e => setFormData({...formData, customer_phone: e.target.value})} className={inputClass} required />
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Select Salon</label>
+          <select value={formData.salon_id} onChange={e => setFormData({...formData, salon_id: e.target.value, service_id: ''})} className={inputClass} required>
+            <option value="">Select a Salon...</option>
+            {salons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Select Service</label>
+          <select value={formData.service_id} onChange={e => setFormData({...formData, service_id: e.target.value})} className={inputClass} required disabled={!formData.salon_id}>
+            <option value="">Select a Service...</option>
+            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Date</label>
+            <input type="date" min={new Date().toISOString().split('T')[0]} value={formData.booking_date} onChange={e => setFormData({...formData, booking_date: e.target.value})} className={inputClass} required />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Time</label>
+            <select value={formData.booking_time} onChange={e => setFormData({...formData, booking_time: e.target.value})} className={inputClass} required>
+              <option value="">Select Time...</option>
+              {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Special Notes (Optional)</label>
+          <textarea rows={2} value={formData.special_notes} onChange={e => setFormData({...formData, special_notes: e.target.value})} className={cn(inputClass, "resize-none")} />
+        </div>
+      </div>
+      <button disabled={isSubmitting} type="submit" className="mt-2 w-full py-3 bg-[#C9A84C] text-black font-medium tracking-widest uppercase text-sm rounded-sm hover:bg-opacity-90 transition-colors disabled:opacity-50">
+        {isSubmitting ? 'Booking...' : 'Confirm Booking'}
+      </button>
+    </form>
+  );
+}
+
 interface Message {
   id: string;
   role: 'user' | 'model';
@@ -96,15 +247,15 @@ export function AIStylist() {
   }, []);
 
   const callGeminiAPI = async (chatHistory: Message[]) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("Gemini API key is missing. Please configure VITE_GEMINI_API_KEY.");
     }
 
-    const bookingInstruction = "If the user wants to book, ask them for their name, email, phone number, preferred date, and time. Wait until you have collected ALL this information, then you MUST output a JSON block exactly in this format starting with CREATE_BOOKING_JSON: {\"customer_name\": \"...\", \"customer_email\": \"...\", \"customer_phone\": \"...\", \"salon_name\": \"...\", \"service_name\": \"...\", \"booking_date\": \"YYYY-MM-DD\", \"booking_time\": \"...\"}";
-    const fullPrompt = SYSTEM_CONTEXT + "\\n\\n" + bookingInstruction + "\\n\\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\\n");
+    const bookingInstruction = "If the user says anything like book, appointment, I want to book, book a salon, schedule — you MUST immediately respond with exactly ONE message containing ONLY this exact text: 'Great! I will get your appointment booked right away. Please fill in these details:[BOOKING_FORM]'. Do NOT ask any back-and-forth questions.";
+    const fullPrompt = SYSTEM_CONTEXT + "\n\n" + bookingInstruction + "\n\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\n");
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -125,17 +276,7 @@ export function AIStylist() {
     const candidatePart = data.candidates?.[0]?.content?.parts?.[0];
     
     if (candidatePart?.text) {
-      const textResponse = candidatePart.text;
-      const match = textResponse.match(/CREATE_BOOKING_JSON:\s*(\{.*\})/);
-      if (match) {
-        try {
-          const args = JSON.parse(match[1]);
-          return await handleBooking(args);
-        } catch (e) {
-          console.error("Failed to parse booking JSON", e);
-        }
-      }
-      return textResponse.replace(/CREATE_BOOKING_JSON:\s*\{.*\}/, "");
+      return candidatePart.text;
     } else {
       throw new Error("Unexpected API response format");
     }
@@ -324,7 +465,21 @@ export function AIStylist() {
                 )}>
                   {msg.role === 'model' ? (
                      <div className="prose prose-sm prose-invert max-w-none">
-                       <ReactMarkdown>{msg.content}</ReactMarkdown>
+                       {msg.content.includes('[BOOKING_FORM]') ? (
+                         <>
+                           <ReactMarkdown>{msg.content.replace('[BOOKING_FORM]', '')}</ReactMarkdown>
+                           <InlineBookingForm 
+                             userEmail={user?.email || ''} 
+                             userName={user?.user_metadata?.full_name || ''} 
+                             onSuccess={(summary) => {
+                               const successMsg: Message = { id: Date.now().toString(), role: 'model', content: summary };
+                               setMessages(prev => [...prev, successMsg]);
+                             }}
+                           />
+                         </>
+                       ) : (
+                         <ReactMarkdown>{msg.content}</ReactMarkdown>
+                       )}
                      </div>
                   ) : (
                     msg.content

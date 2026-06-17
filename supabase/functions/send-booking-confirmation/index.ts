@@ -33,7 +33,7 @@ serve(async (req) => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Your Booking is Confirmed</title>
+        <title>Your Booking Request Received</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #fcfcfc; color: #1a1a1a;">
         <div style="max-w: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; margin-top: 40px; border: 1px solid #eaeaea;">
@@ -44,9 +44,13 @@ serve(async (req) => {
           
           <!-- Content -->
           <div style="padding: 40px;">
-            <h2 style="margin-top: 0; font-size: 24px; font-weight: 300; color: #1a1a1a;">Hello ${customer_name},</h2>
-            <p style="font-size: 16px; line-height: 24px; color: #4a4a4a; margin-bottom: 30px;">
-              Your curated experience has been confirmed. We look forward to welcoming you.
+            <div style="text-align: center; margin-bottom: 25px;">
+              <span style="display: inline-block; background-color: #fef3c7; color: #d97706; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #fde68a;">PENDING — Under Review</span>
+            </div>
+            
+            <h2 style="margin-top: 0; font-size: 24px; font-weight: 300; color: #1a1a1a; text-align: center;">Booking Request Received!</h2>
+            <p style="font-size: 16px; line-height: 24px; color: #4a4a4a; margin-bottom: 30px; text-align: center;">
+              Thank you for choosing LUMINAE, ${customer_name}. We have received your appointment request and our team is reviewing it. You will receive a confirmation within 1 hour.
             </p>
             
             <!-- Booking Details Card -->
@@ -63,11 +67,11 @@ serve(async (req) => {
                   <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #1a1a1a; font-size: 15px; font-weight: 500;">${service_name}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #666; font-size: 14px;">Date</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #666; font-size: 14px;">Requested Date</td>
                   <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #1a1a1a; font-size: 15px; font-weight: 500;">${booking_date}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #666; font-size: 14px;">Time</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #666; font-size: 14px;">Requested Time</td>
                   <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #1a1a1a; font-size: 15px; font-weight: 500;">${booking_time}</td>
                 </tr>
                 <tr>
@@ -82,12 +86,15 @@ serve(async (req) => {
                 ` : ''}
               </table>
             </div>
+            
+            <p style="font-size: 13px; line-height: 20px; color: #666; text-align: center; margin: 0;">
+              Once confirmed you will receive another email with your final appointment details. If you need to make changes please contact us.
+            </p>
           </div>
           
           <!-- Footer -->
           <div style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eaeaea;">
             <p style="margin: 0 0 10px 0; font-size: 14px; color: #C9A84C; font-style: italic; font-family: Georgia, serif;">Find Your Glow in Delhi</p>
-            <p style="margin: 0; font-size: 12px; color: #999;">If you need to reschedule, please contact the salon directly.</p>
           </div>
         </div>
       </body>
@@ -103,7 +110,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'LUMINAE Beauty <onboarding@resend.dev>',
         to: customer_email,
-        subject: 'Your LUMINAE Booking is Confirmed ✨',
+        subject: 'Your LUMINAE Booking Request Received ✨',
         html: htmlBody,
       }),
     })
