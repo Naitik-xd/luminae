@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabase';
 
-function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (summary: string) => void, userEmail: string, userName: string }) {
+function InlineBookingForm({ onSuccess, userEmail, userName, userId }: { onSuccess: (summary: string) => void, userEmail: string, userName: string, userId: string }) {
   const [salons, setSalons] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   
@@ -52,22 +52,46 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
     try {
       const selectedSalon = salons.find(s => s.id === formData.salon_id);
       const selectedService = services.find(s => s.id === formData.service_id);
+      const selectedSalonName = selectedSalon?.name || '';
+      const selectedServiceName = selectedService?.name || '';
 
+      console.log('Fetching Salon:', selectedSalonName);
+      const { data: salonData, error: salonError } = await supabase.from('salons').select('id, name').ilike('name', '%' + selectedSalonName + '%').single();
+      console.log('Salon Result:', salonData, salonError);
+
+      if (salonError || !salonData) {
+        throw new Error('Salon not found');
+      }
+      const salonId = salonData.id;
+
+      console.log('Fetching Service:', selectedServiceName, 'for salon:', salonId);
+      const { data: serviceData, error: serviceError } = await supabase.from('services').select('id, name').eq('salon_id', salonId).ilike('name', '%' + selectedServiceName + '%').single();
+      console.log('Service Result:', serviceData, serviceError);
+
+      if (serviceError || !serviceData) {
+        throw new Error('Service not found');
+      }
+      const serviceId = serviceData.id;
+
+      console.log('Inserting booking for user_id:', userId);
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert({
           customer_name: formData.customer_name,
           customer_email: formData.customer_email,
           customer_phone: formData.customer_phone,
-          salon_id: formData.salon_id,
-          service_id: formData.service_id,
+          salon_id: salonId,
+          service_id: serviceId,
           booking_date: formData.booking_date,
           booking_time: formData.booking_time,
           status: 'pending',
-          special_notes: formData.special_notes
+          special_notes: formData.special_notes,
+          user_id: userId
         })
         .select()
         .single();
+      
+      console.log('Booking Insert Result:', bookingData, bookingError);
 
       if (bookingError || !bookingData) throw new Error("Could not save booking.");
 
@@ -97,61 +121,62 @@ function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (sum
     }
   };
 
-  const inputClass = "w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md py-2 px-3 focus:outline-none focus:border-[#C9A84C] text-sm";
+  const inputClass = "w-full bg-[#FAF7F4] dark:bg-[#2A2A2A] border border-[#E8D5C4] dark:border-[#3A3A3A] rounded-md py-2 px-3 focus:outline-none focus:border-[#C9A84C] text-sm text-[#2C1810] dark:text-[#F5F5F5] placeholder-[#9B8B85] dark:placeholder-[#666666]";
+  const labelClass = "block text-xs uppercase tracking-widest text-[#2C1810] dark:text-[#F5F5F5] mb-1";
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4 p-4 border border-[var(--border-color)] bg-[var(--card-bg)] rounded-xl relative overflow-hidden">
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4 p-4 border border-[#E8D5C4] dark:border-[#3A3A3A] bg-[#FFF9F7] dark:bg-[#1A1A1A] rounded-xl relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent opacity-50" />
       <h3 className="font-serif text-lg text-[#C9A84C]">Booking Details</h3>
       
-      {error && <div className="text-red-500 text-xs">{error}</div>}
+      {error && <div className="bg-[#DC2626] text-white text-xs px-3 py-1.5 rounded-full inline-block self-start font-medium tracking-wide">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Full Name</label>
+          <label className={labelClass}>Full Name</label>
           <input type="text" value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: e.target.value})} className={inputClass} required />
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Email</label>
+          <label className={labelClass}>Email</label>
           <input type="email" value={formData.customer_email} onChange={e => setFormData({...formData, customer_email: e.target.value})} className={inputClass} required />
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Phone</label>
+          <label className={labelClass}>Phone</label>
           <input type="tel" value={formData.customer_phone} onChange={e => setFormData({...formData, customer_phone: e.target.value})} className={inputClass} required />
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Select Salon</label>
+          <label className={labelClass}>Select Salon</label>
           <select value={formData.salon_id} onChange={e => setFormData({...formData, salon_id: e.target.value, service_id: ''})} className={inputClass} required>
-            <option value="">Select a Salon...</option>
-            {salons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <option value="" className="text-[#9B8B85] dark:text-[#666666]">Select a Salon...</option>
+            {salons.map(s => <option key={s.id} value={s.id} className="text-[#2C1810] dark:text-[#F5F5F5]">{s.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Select Service</label>
+          <label className={labelClass}>Select Service</label>
           <select value={formData.service_id} onChange={e => setFormData({...formData, service_id: e.target.value})} className={inputClass} required disabled={!formData.salon_id}>
-            <option value="">Select a Service...</option>
-            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <option value="" className="text-[#9B8B85] dark:text-[#666666]">Select a Service...</option>
+            {services.map(s => <option key={s.id} value={s.id} className="text-[#2C1810] dark:text-[#F5F5F5]">{s.name}</option>)}
           </select>
         </div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Date</label>
+            <label className={labelClass}>Date</label>
             <input type="date" min={new Date().toISOString().split('T')[0]} value={formData.booking_date} onChange={e => setFormData({...formData, booking_date: e.target.value})} className={inputClass} required />
           </div>
           <div className="flex-1">
-            <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Time</label>
+            <label className={labelClass}>Time</label>
             <select value={formData.booking_time} onChange={e => setFormData({...formData, booking_time: e.target.value})} className={inputClass} required>
-              <option value="">Select Time...</option>
-              {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="" className="text-[#9B8B85] dark:text-[#666666]">Select Time...</option>
+              {timeSlots.map(t => <option key={t} value={t} className="text-[#2C1810] dark:text-[#F5F5F5]">{t}</option>)}
             </select>
           </div>
         </div>
         <div className="md:col-span-2">
-          <label className="block text-xs uppercase tracking-widest text-[var(--text-muted)] mb-1">Special Notes (Optional)</label>
-          <textarea rows={2} value={formData.special_notes} onChange={e => setFormData({...formData, special_notes: e.target.value})} className={cn(inputClass, "resize-none")} />
+          <label className={labelClass}>Special Notes (Optional)</label>
+          <textarea rows={2} value={formData.special_notes} onChange={e => setFormData({...formData, special_notes: e.target.value})} className={cn(inputClass, "resize-none")} placeholder="Any specific requirements..." />
         </div>
       </div>
-      <button disabled={isSubmitting} type="submit" className="mt-2 w-full py-3 bg-[#C9A84C] text-black font-medium tracking-widest uppercase text-sm rounded-sm hover:bg-opacity-90 transition-colors disabled:opacity-50">
+      <button disabled={isSubmitting} type="submit" className="mt-2 w-full py-3 bg-[#C9A84C] text-white font-medium tracking-widest uppercase text-sm rounded-sm hover:bg-opacity-90 transition-colors disabled:opacity-50">
         {isSubmitting ? 'Booking...' : 'Confirm Booking'}
       </button>
     </form>
@@ -471,6 +496,7 @@ export function AIStylist() {
                            <InlineBookingForm 
                              userEmail={user?.email || ''} 
                              userName={user?.user_metadata?.full_name || ''} 
+                             userId={user?.id || ''}
                              onSuccess={(summary) => {
                                const successMsg: Message = { id: Date.now().toString(), role: 'model', content: summary };
                                setMessages(prev => [...prev, successMsg]);
