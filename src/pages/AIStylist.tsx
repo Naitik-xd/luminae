@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabase';
 
-function InlineBookingForm({ onSuccess, userEmail, userName, userId }: { onSuccess: (summary: string) => void, userEmail: string, userName: string, userId: string }) {
+function InlineBookingForm({ onSuccess, userEmail, userName }: { onSuccess: (summary: string) => void, userEmail: string, userName: string }) {
   const [salons, setSalons] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   
@@ -73,7 +73,7 @@ function InlineBookingForm({ onSuccess, userEmail, userName, userId }: { onSucce
       }
       const serviceId = serviceData.id;
 
-      console.log('Inserting booking for user_id:', userId);
+      console.log('Inserting booking');
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -85,8 +85,7 @@ function InlineBookingForm({ onSuccess, userEmail, userName, userId }: { onSucce
           booking_date: formData.booking_date,
           booking_time: formData.booking_time,
           status: 'pending',
-          special_notes: formData.special_notes,
-          user_id: userId
+          special_notes: formData.special_notes
         })
         .select()
         .single();
@@ -268,7 +267,7 @@ export function AIStylist() {
   }, [messages, isTyping, error]);
 
   useEffect(() => {
-    console.log("Gemini API Key defined:", !!import.meta.env.VITE_GEMINI_API_KEY);
+    console.log("Gemini API Key defined:", !!(import.meta as any).env.VITE_GEMINI_API_KEY);
   }, []);
 
   const callGeminiAPI = async (chatHistory: Message[]) => {
@@ -496,7 +495,6 @@ export function AIStylist() {
                            <InlineBookingForm 
                              userEmail={user?.email || ''} 
                              userName={user?.user_metadata?.full_name || ''} 
-                             userId={user?.id || ''}
                              onSuccess={(summary) => {
                                const successMsg: Message = { id: Date.now().toString(), role: 'model', content: summary };
                                setMessages(prev => [...prev, successMsg]);

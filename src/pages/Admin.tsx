@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -17,11 +17,37 @@ export function Admin() {
   const [dataLoading, setDataLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const topScroll = topScrollRef.current;
+    const tableWrapper = tableWrapperRef.current;
+
+    if (!topScroll || !tableWrapper) return;
+
+    const handleTopScroll = () => {
+      tableWrapper.scrollLeft = topScroll.scrollLeft;
+    };
+
+    const handleTableScroll = () => {
+      topScroll.scrollLeft = tableWrapper.scrollLeft;
+    };
+
+    topScroll.addEventListener('scroll', handleTopScroll);
+    tableWrapper.addEventListener('scroll', handleTableScroll);
+
+    return () => {
+      topScroll.removeEventListener('scroll', handleTopScroll);
+      tableWrapper.removeEventListener('scroll', handleTableScroll);
+    };
+  }, [bookings, dataLoading]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       if (currentSession) {
-        checkAdmin(currentSession.user.email);
+        checkAdmin();
       } else {
         setDataLoading(false);
       }
@@ -30,7 +56,7 @@ export function Admin() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       if (newSession) {
-        checkAdmin(newSession.user.email);
+        checkAdmin();
       } else {
         setIsAdminLocally(false);
         setAccessDenied(false);
@@ -54,20 +80,29 @@ export function Admin() {
     }
   }, [isAdminLocally]);
 
-  const checkAdmin = async (userEmail: string | undefined) => {
-    if (!userEmail) return;
-    
-    // Hardcoded bypass for ease of use in demo environment
-    if (userEmail === 'naitik.270810@outlook.com' || userEmail === 'evaluator@luminae.com') {
-      setIsAdminLocally(true);
-      setAccessDenied(false);
-      fetchAllBookings();
-      return;
-    }
-
+  const checkAdmin = async () => {
     try {
-      const { data, error } = await supabase.from('admins').select('*').eq('email', userEmail).single();
-      if (error || !data) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email;
+      
+      if (!userEmail) {
+        setIsAdminLocally(false);
+        setAccessDenied(true);
+        setDataLoading(false);
+        return;
+      }
+      
+      // Hardcoded bypass for ease of use in demo environment
+      if (userEmail === 'naitik.270810@outlook.com' || userEmail === 'evaluator@luminae.com') {
+        setIsAdminLocally(true);
+        setAccessDenied(false);
+        fetchAllBookings();
+        return;
+      }
+
+      const { data: adminData, error: adminError } = await supabase.from('admins').select('email').eq('email', userEmail).maybeSingle();
+      
+      if (adminError || !adminData) {
         setIsAdminLocally(false);
         setAccessDenied(true);
         setDataLoading(false);
@@ -328,22 +363,43 @@ export function Admin() {
             <p className="text-[var(--text-muted)] tracking-widest uppercase text-sm">No bookings found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1000px]">
-               <thead>
-                 <tr className="border-b border-[var(--border-color)] text-[var(--text-muted)] text-[10px] md:text-xs uppercase tracking-widest bg-black/5">
-                   <th className="p-4 font-medium">No</th>
-                   <th className="p-4 font-medium">Customer Name</th>
-                   <th className="p-4 font-medium">Customer Email</th>
-                   <th className="p-4 font-medium">Phone</th>
-                   <th className="p-4 font-medium">Salon Name</th>
-                   <th className="p-4 font-medium">Service Name</th>
-                   <th className="p-4 font-medium">Date</th>
-                   <th className="p-4 font-medium">Time</th>
-                   <th className="p-4 font-medium max-w-xs">Special Notes</th>
-                   <th className="p-4 font-medium">Status</th>
-                 </tr>
-               </thead>
+          <div className="flex flex-col">
+            <div 
+              ref={topScrollRef} 
+              id="topScroll" 
+              className="w-full overflow-x-auto overflow-y-hidden border-b border-[var(--border-color)]"
+              style={{
+                height: '12px',
+                backgroundColor: 'var(--card-bg)',
+                scrollbarColor: '#C9A84C transparent',
+                scrollbarWidth: 'thin'
+              }}
+            >
+              <div style={{ width: '1000px', height: '1px' }}></div>
+            </div>
+            <div 
+              ref={tableWrapperRef}
+              className="overflow-x-auto overflow-y-auto max-h-[600px]"
+              style={{
+                scrollbarColor: '#C9A84C transparent',
+                scrollbarWidth: 'thin'
+              }}
+            >
+              <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1000px]">
+                <thead className="sticky top-0 z-10 shadow-sm border-b border-[var(--border-color)] text-[var(--text-muted)] text-[10px] md:text-xs uppercase tracking-widest bg-[var(--card-bg)]">
+                  <tr>
+                    <th className="p-4 font-medium">No</th>
+                    <th className="p-4 font-medium">Customer Name</th>
+                    <th className="p-4 font-medium">Customer Email</th>
+                    <th className="p-4 font-medium">Phone</th>
+                    <th className="p-4 font-medium">Salon Name</th>
+                    <th className="p-4 font-medium">Service Name</th>
+                    <th className="p-4 font-medium">Date</th>
+                    <th className="p-4 font-medium">Time</th>
+                    <th className="p-4 font-medium max-w-xs">Special Notes</th>
+                    <th className="p-4 font-medium">Status</th>
+                  </tr>
+                </thead>
                <tbody>
                  {bookings.map((row, index) => (
                    <tr key={row.id} className="border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--text-color)]/5 transition-colors [&:nth-child(even)]:bg-[var(--border-color)]/10">
@@ -377,6 +433,7 @@ export function Admin() {
                  ))}
                </tbody>
              </table>
+           </div>
           </div>
         )}
       </div>

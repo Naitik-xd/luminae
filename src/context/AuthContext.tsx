@@ -16,23 +16,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const checkAdmin = async (email: string | undefined) => {
-      if (!email) {
+    const checkAdmin = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userEmail = user?.email;
+        if (!userEmail) {
+          setIsAdmin(false);
+          return;
+        }
+        if (userEmail === 'naitik.270810@outlook.com' || userEmail === 'evaluator@luminae.com') {
+          setIsAdmin(true);
+          return;
+        }
+        const { data: adminData } = await supabase.from('admins').select('email').eq('email', userEmail).maybeSingle();
+        setIsAdmin(!!adminData);
+      } catch (e) {
         setIsAdmin(false);
-        return;
       }
-      if (email === 'naitik.270810@outlook.com' || email === 'evaluator@luminae.com') {
-        setIsAdmin(true);
-        return;
-      }
-      const { data } = await supabase.from('admins').select('*').eq('email', email).single();
-      setIsAdmin(!!data);
     };
 
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user?.email) checkAdmin(session.user.email);
+      if (session?.user?.email) checkAdmin();
       setLoading(false);
     });
 
@@ -40,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user?.email) {
-        checkAdmin(session.user.email);
+        checkAdmin();
       } else {
         setIsAdmin(false);
       }
