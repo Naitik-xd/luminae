@@ -152,8 +152,8 @@ export function Admin() {
           body: JSON.stringify({
             customer_name: updatedBooking.customer_name,
             customer_email: updatedBooking.customer_email,
-            salon_name: updatedBooking.salons?.name || 'LUMINAE',
-            service_name: updatedBooking.services?.name || 'Service',
+            salon_name: updatedBooking.salons?.name || updatedBooking.salon_name,
+            service_name: updatedBooking.services?.name || updatedBooking.service_name,
             booking_date: updatedBooking.booking_date,
             booking_time: updatedBooking.booking_time,
             new_status: newStatus
