@@ -124,8 +124,10 @@ export function Admin() {
 
   const updateStatus = async (id: string, newStatus: string) => {
     try {
+      console.log('STATUS CHANGE TRIGGERED', id, newStatus);
       const { data, error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id).select('*, salons(name), services(name)');
       
+      console.log('SUPABASE UPDATE DONE', data, error);
       console.log('Update Status Data:', data);
       console.log('Update Status Error:', error);
       
@@ -136,9 +138,12 @@ export function Admin() {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
       toast.success('Status Updated');
 
-      if (data && data.length > 0 && ['confirmed', 'cancelled', 'completed'].includes(newStatus)) {
+      console.log('SHOULD SEND EMAIL:', newStatus === 'confirmed' || newStatus === 'cancelled' || newStatus === 'completed');
+
+      if (data && data.length > 0 && (newStatus === 'confirmed' || newStatus === 'cancelled' || newStatus === 'completed')) {
         const updatedBooking = data[0];
-        fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-status-update', {
+        console.log('CALLING SEND STATUS UPDATE EDGE FUNCTION');
+        const response = await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-status-update', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -153,10 +158,13 @@ export function Admin() {
             booking_time: updatedBooking.booking_time,
             new_status: newStatus
           })
-        }).catch(err => console.error("Email failed:", err));
+        });
+        console.log('EDGE FUNCTION RESPONSE STATUS:', response.status);
       }
     } catch (err: any) {
-      // Handled above
+      if (err instanceof Error) {
+        console.error("Update error:", err.message);
+      }
     }
   };
 
