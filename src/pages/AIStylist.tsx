@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import { supabase } from '../lib/supabase';
 
 interface Message {
   id: string;
@@ -89,7 +90,8 @@ export function AIStylist() {
       throw new Error("Gemini API key is missing. Please configure VITE_GEMINI_API_KEY.");
     }
 
-    const fullPrompt = SYSTEM_CONTEXT + "\\n\\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\\n");
+    const bookingInstruction = "If the user wants to book, ask them for their name, email, phone number, preferred date, and time. Wait until you have collected ALL this information, then call the createBooking function. Do NOT call createBooking until you have every piece of information.";
+    const fullPrompt = SYSTEM_CONTEXT + "\\n\\n" + bookingInstruction + "\\n\\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\\n");
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -99,6 +101,27 @@ export function AIStylist() {
       body: JSON.stringify({
         contents: [{
           parts: [{ text: fullPrompt }]
+        }],
+        tools: [{
+          functionDeclarations: [
+            {
+              name: "createBooking",
+              description: "Creates a booking when all details are collected.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  customer_name: { type: "STRING" },
+                  customer_email: { type: "STRING" },
+                  customer_phone: { type: "STRING" },
+                  salon_name: { type: "STRING" },
+                  service_name: { type: "STRING" },
+                  booking_date: { type: "STRING", description: "YYYY-MM-DD" },
+                  booking_time: { type: "STRING" }
+                },
+                required: ["customer_name", "customer_email", "customer_phone", "salon_name", "service_name", "booking_date", "booking_time"]
+              }
+            }
+          ]
         }]
       }),
     });
@@ -109,10 +132,91 @@ export function AIStylist() {
     }
 
     const data = await response.json();
-    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content.parts.length > 0) {
-      return data.candidates[0].content.parts[0].text;
+    const candidatePart = data.candidates?.[0]?.content?.parts?.[0];
+    
+    if (candidatePart?.functionCall) {
+      const call = candidatePart.functionCall;
+      if (call.name === 'createBooking') {
+        const args = call.args;
+        return await handleBooking(args);
+      }
+    }
+
+    if (candidatePart?.text) {
+      return candidatePart.text;
     } else {
       throw new Error("Unexpected API response format");
+    }
+  };
+
+  const handleBooking = async (args: any) => {
+    try {
+      // 1. Find Salon ID
+      const { data: salonData, error: salonError } = await supabase
+        .from('salons')
+        .select('id')
+        .eq('name', args.salon_name)
+        .single();
+        
+      if (salonError || !salonData) {
+        throw new Error(`Could not find salon: ${args.salon_name}.`);
+      }
+
+      // 2. Find Service ID
+      const { data: serviceData, error: serviceError } = await supabase
+        .from('services')
+        .select('id')
+        .eq('name', args.service_name)
+        .eq('salon_id', salonData.id)
+        .single();
+        
+      if (serviceError || !serviceData) {
+        throw new Error(`Could not find service: ${args.service_name} at this salon.`);
+      }
+
+      // 3. Insert Booking
+      const { data: bookingData, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          customer_name: args.customer_name,
+          customer_email: args.customer_email,
+          customer_phone: args.customer_phone,
+          salon_id: salonData.id,
+          service_id: serviceData.id,
+          booking_date: args.booking_date,
+          booking_time: args.booking_time,
+          status: 'pending',
+          special_notes: ''
+        })
+        .select()
+        .single();
+
+      if (bookingError || !bookingData) {
+        throw new Error("Database error while saving your booking.");
+      }
+
+      // 4. Call Edge Function for email (optional but required by prompt instructions)
+      await fetch('https://qydnjcftwvxwkqjyzxqp.supabase.co/functions/v1/send-booking-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          customer_name: args.customer_name,
+          customer_email: args.customer_email,
+          customer_phone: args.customer_phone,
+          salon_name: args.salon_name,
+          service_name: args.service_name,
+          booking_date: args.booking_date,
+          booking_time: args.booking_time,
+          special_notes: ''
+        })
+      }).catch(err => console.error("Email failed:", err));
+
+      return `Your booking is confirmed! Details have been saved to our system. Your Booking ID is: **${bookingData.id.slice(0,8)}**. An email confirmation will be sent shortly.`;
+    } catch (err: any) {
+      return `I encountered an issue while booking: ${err.message}. Please verify the salon and service details or try again.`;
     }
   };
 

@@ -124,7 +124,7 @@ export function Admin() {
 
   const updateStatus = async (id: string, newStatus: string) => {
     try {
-      const { data, error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id).select();
+      const { data, error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id).select('*, salons(name), services(name)');
       
       console.log('Update Status Data:', data);
       console.log('Update Status Error:', error);
@@ -135,6 +135,26 @@ export function Admin() {
       }
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
       toast.success('Status Updated');
+
+      if (data && data.length > 0) {
+        const updatedBooking = data[0];
+        fetch('https://qydnjcftwvxwkqjyzxqp.supabase.co/functions/v1/send-status-update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            customer_name: updatedBooking.customer_name,
+            customer_email: updatedBooking.customer_email,
+            salon_name: updatedBooking.salons?.name || 'LUMINAE',
+            service_name: updatedBooking.services?.name || 'Service',
+            booking_date: updatedBooking.booking_date,
+            booking_time: updatedBooking.booking_time,
+            new_status: newStatus
+          })
+        }).catch(err => console.error("Email failed:", err));
+      }
     } catch (err: any) {
       // Handled above
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Moon, Sun, User, Shield } from 'lucide-react';
@@ -10,6 +10,8 @@ import { supabase } from '../lib/supabase';
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin } = useAuth();
   const location = useLocation();
@@ -21,6 +23,16 @@ export function Navbar() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogout = async () => {
@@ -111,17 +123,38 @@ export function Navbar() {
 
           <div className="flex items-center gap-4">
             {user ? (
-              <div className="flex items-center gap-4">
-                <Link to="/profile" className="flex items-center gap-2 hover:text-[var(--accent-color)] transition-colors">
+              <div className="relative" ref={dropdownRef}>
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 hover:text-[var(--accent-color)] transition-colors"
+                >
                   <User size={18} />
                   <span className="text-sm border-b border-transparent hover:border-[var(--accent-color)]">{user.email?.split('@')[0]}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm uppercase tracking-widest text-[var(--accent-color)] hover:text-red-500 transition-colors"
-                >
-                  Logout
                 </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-4 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl flex flex-col items-start rounded-sm py-2 z-50">
+                    <Link 
+                      to="/my-bookings" 
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--text-color)]/5 transition-colors"
+                    >
+                      My Bookings
+                    </Link>
+                    <Link 
+                      to="/profile" 
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--text-color)]/5 transition-colors"
+                    >
+                      Profile
+                    </Link>
+                    <button
+                      onClick={() => { setIsDropdownOpen(false); handleLogout(); }}
+                      className="w-full px-4 py-2 text-left text-sm text-[var(--accent-color)] hover:bg-[var(--text-color)]/5 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <Link

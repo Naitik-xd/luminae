@@ -15,6 +15,7 @@ import { Booking } from './pages/Booking';
 import { Auth } from './pages/Auth';
 import { Admin } from './pages/Admin';
 import { AIStylist } from './pages/AIStylist';
+import { MyBookings } from './pages/MyBookings';
 
 import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -34,6 +35,7 @@ function AnimatedRoutes() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/ai-stylist" element={<AIStylist />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
