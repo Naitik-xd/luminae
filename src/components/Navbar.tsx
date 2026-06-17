@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Moon, Sun, User, Shield } from 'lucide-react';
+import { Menu, X, Moon, Sun, User, Shield, Calendar, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -157,36 +157,85 @@ export function Navbar() {
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button 
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 hover:text-[#C9A84C] transition-colors"
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsDropdownOpen(!isDropdownOpen); }}
+                  className="w-[36px] h-[36px] rounded-full border border-[#C9A84C] text-[#C9A84C] flex items-center justify-center text-sm font-bold uppercase transition-transform hover:scale-105"
                 >
-                  <User size={18} />
-                  <span className="text-sm border-b border-transparent hover:border-[#C9A84C]">{user.email?.split('@')[0]}</span>
+                  {user.email?.[0] || 'U'}
                 </button>
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-4 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl flex flex-col items-start rounded-sm py-2 z-50">
-                    <Link 
-                      to="/my-bookings" 
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--text-color)]/5 transition-colors"
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className={cn(
+                        "absolute right-0 top-full mt-2 w-[220px] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] z-[9999] overflow-hidden border",
+                        theme === 'light' ? 'bg-[#FAF7F4] border-[#E8D5C4]' : 'bg-[#1A1A1A] border-[#333333]'
+                      )}
                     >
-                      My Bookings
-                    </Link>
-                    <Link 
-                      to="/profile" 
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--text-color)]/5 transition-colors"
-                    >
-                      Profile
-                    </Link>
-                    <button
-                      onClick={() => { setIsDropdownOpen(false); handleLogout(); }}
-                      className="w-full px-4 py-2 text-left text-sm text-[var(--accent-color)] hover:bg-[var(--text-color)]/5 transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
+                      <div className="p-4 border-b border-[var(--border-color)]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C] flex items-center justify-center text-[#C9A84C] font-bold uppercase flex-shrink-0">
+                            {user.email?.[0] || 'U'}
+                          </div>
+                          <div className="overflow-hidden">
+                            <p className="font-bold text-sm truncate" style={{ color: theme === 'light' ? '#2C1810' : '#F5F5F5' }}>
+                              {user.user_metadata?.full_name || 'User'}
+                            </p>
+                            <p className="text-xs text-[var(--text-muted)] truncate">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-2">
+                        <Link 
+                          to="/my-bookings" 
+                          onClick={() => setIsDropdownOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
+                            theme === 'light' ? 'hover:bg-[#2C1810]/5 text-[#2C1810]' : 'hover:bg-[#FFFFFF]/5 text-[#F5F5F5]'
+                          )}
+                        >
+                          <Calendar size={16} />
+                          My Bookings
+                        </Link>
+                        <Link 
+                          to="/profile" 
+                          onClick={() => setIsDropdownOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
+                            theme === 'light' ? 'hover:bg-[#2C1810]/5 text-[#2C1810]' : 'hover:bg-[#FFFFFF]/5 text-[#F5F5F5]'
+                          )}
+                        >
+                          <User size={16} />
+                          Profile Settings
+                        </Link>
+                        
+                        <div className="h-[1px] w-full bg-[var(--border-color)] my-2"></div>
+                        
+                        <button
+                          type="button"
+                          onClick={async () => { 
+                            setIsDropdownOpen(false); 
+                            await supabase.auth.signOut();
+                            navigate('/');
+                          }}
+                          className={cn(
+                            "flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-lg transition-colors text-red-500",
+                            theme === 'light' ? 'hover:bg-red-500/10' : 'hover:bg-red-500/10'
+                          )}
+                        >
+                          <LogOut size={16} />
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <Link
@@ -213,35 +262,85 @@ export function Navbar() {
           {user && (
             <div className="relative" ref={mobileDropdownRef}>
               <button 
-                onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
-                className="w-[36px] h-[36px] rounded-full border border-[#C9A84C] bg-[#1A1A1A] text-[#C9A84C] flex items-center justify-center text-sm font-bold uppercase transition-transform hover:scale-105"
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMobileDropdownOpen(!isMobileDropdownOpen); }}
+                className="w-[36px] h-[36px] rounded-full border border-[#C9A84C] text-[#C9A84C] flex items-center justify-center text-sm font-bold uppercase transition-transform hover:scale-105"
               >
                 {user.email?.[0] || 'U'}
               </button>
-              {isMobileDropdownOpen && (
-                <div className="absolute right-0 mt-4 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl flex flex-col items-start rounded-sm py-2 z-50">
-                  <Link 
-                    to="/my-bookings" 
-                    onClick={() => setIsMobileDropdownOpen(false)}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--text-color)]/5 transition-colors"
+              <AnimatePresence>
+                {isMobileDropdownOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className={cn(
+                      "absolute right-0 top-full mt-2 w-[220px] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] z-[9999] overflow-hidden border",
+                      theme === 'light' ? 'bg-[#FAF7F4] border-[#E8D5C4]' : 'bg-[#1A1A1A] border-[#333333]'
+                    )}
                   >
-                    My Bookings
-                  </Link>
-                  <Link 
-                    to="/profile" 
-                    onClick={() => setIsMobileDropdownOpen(false)}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--text-color)]/5 transition-colors"
-                  >
-                    Profile
-                  </Link>
-                  <button
-                    onClick={() => { setIsMobileDropdownOpen(false); handleLogout(); }}
-                    className="w-full px-4 py-2 text-left text-sm text-[var(--accent-color)] hover:bg-[var(--text-color)]/5 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
+                    <div className="p-4 border-b border-[var(--border-color)]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C] flex items-center justify-center text-[#C9A84C] font-bold uppercase flex-shrink-0">
+                          {user.email?.[0] || 'U'}
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="font-bold text-sm truncate" style={{ color: theme === 'light' ? '#2C1810' : '#F5F5F5' }}>
+                            {user.user_metadata?.full_name || 'User'}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)] truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-2">
+                      <Link 
+                        to="/my-bookings" 
+                        onClick={() => setIsMobileDropdownOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
+                          theme === 'light' ? 'hover:bg-[#2C1810]/5 text-[#2C1810]' : 'hover:bg-[#FFFFFF]/5 text-[#F5F5F5]'
+                        )}
+                      >
+                        <Calendar size={16} />
+                        My Bookings
+                      </Link>
+                      <Link 
+                        to="/profile" 
+                        onClick={() => setIsMobileDropdownOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
+                          theme === 'light' ? 'hover:bg-[#2C1810]/5 text-[#2C1810]' : 'hover:bg-[#FFFFFF]/5 text-[#F5F5F5]'
+                        )}
+                      >
+                        <User size={16} />
+                        Profile Settings
+                      </Link>
+                      
+                      <div className="h-[1px] w-full bg-[var(--border-color)] my-2"></div>
+                      
+                      <button
+                        type="button"
+                        onClick={async () => { 
+                          setIsMobileDropdownOpen(false); 
+                          await supabase.auth.signOut();
+                          navigate('/');
+                        }}
+                        className={cn(
+                          "flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-lg transition-colors text-red-500",
+                          theme === 'light' ? 'hover:bg-red-500/10' : 'hover:bg-red-500/10'
+                        )}
+                      >
+                        <LogOut size={16} />
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
