@@ -103,14 +103,6 @@ export function Admin() {
         return;
       }
       
-      // Hardcoded bypass for ease of use in demo environment
-      if (userEmail === 'naitik.270810@outlook.com' || userEmail === 'evaluator@luminae.com') {
-        setIsAdminLocally(true);
-        setAccessDenied(false);
-        fetchAllBookings();
-        return;
-      }
-
       const { data: adminData, error: adminError } = await supabase.from('admins').select('email').eq('email', userEmail).maybeSingle();
       
       if (adminError || !adminData) {
@@ -189,11 +181,11 @@ export function Admin() {
       if (data && data.length > 0 && (newStatus === 'confirmed' || newStatus === 'cancelled' || newStatus === 'completed')) {
         const updatedBooking = data[0];
         console.log('CALLING SEND STATUS UPDATE EDGE FUNCTION');
-        const response = await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-status-update', {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-status-update`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4aWpteGhydGlteGd2cW9zZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzM2MTgsImV4cCI6MjA5NzE0OTYxOH0.LOf3fEM8x2c7jiCOimVk99XEFZ0LDnMSsGiB6dAhht0'
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             customer_name: updatedBooking.customer_name,

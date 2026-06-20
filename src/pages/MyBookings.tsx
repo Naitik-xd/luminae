@@ -96,11 +96,11 @@ export function MyBookings() {
       
       // Trigger edge function
       if (data) {
-        await fetch('https://lxijmxhrtimxgvqosgvx.supabase.co/functions/v1/send-status-update', {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-status-update`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4aWpteGhydGlteGd2cW9zZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzM2MTgsImV4cCI6MjA5NzE0OTYxOH0.LOf3fEM8x2c7jiCOimVk99XEFZ0LDnMSsGiB6dAhht0'
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             customer_name: data.customer_name,
