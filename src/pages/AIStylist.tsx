@@ -262,24 +262,15 @@ export function AIStylist() {
   }, []);
 
   const callGeminiAPI = async (chatHistory: Message[]) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Gemini API key is missing. Please configure VITE_GEMINI_API_KEY.");
-    }
-
     const bookingInstruction = "If the user says anything like book, appointment, I want to book, book a salon, schedule — you MUST immediately respond with exactly ONE message containing ONLY this exact text: 'Great! I will get your appointment booked right away. Please fill in these details:[BOOKING_FORM]'. Do NOT ask any back-and-forth questions.";
     const fullPrompt = SYSTEM_CONTEXT + "\n\n" + bookingInstruction + "\n\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\n");
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`, {
+    const response = await fetch('/api/gemini', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: fullPrompt }]
-        }]
-      }),
+      body: JSON.stringify({ fullPrompt }),
     });
 
     if (!response.ok) {
