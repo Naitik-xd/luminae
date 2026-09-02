@@ -149,8 +149,13 @@ export default async function handler(req: Request) {
     }
 
     if (tracking.request_count >= 15) {
-      if (dcKey) {
+      if (dcKey && tracking.request_count === 15) {
         await sendDiscordWebhook(dcKey, `⚠️ Rate limit exceeded for IP: **${ip}** (15 requests/3hrs)`);
+        // Increment to 16 so we don't spam the webhook on the next blocked attempt
+        tracking.request_count = 16;
+        if (supabase) {
+          await supabase.from('ip_tracking').update({ request_count: 16 }).eq('ip', ip);
+        }
       }
       return createGeminiResponse("Rate limit exceeded. Please try again later (max 15 requests per 3 hours).");
     }

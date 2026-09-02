@@ -22,11 +22,6 @@ export function Footer() {
     if (e.target === e.currentTarget) closeModal();
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Thank you for reaching out! We will get back to you within 24 hours');
-    closeModal();
-  };
 
   return (
     <>
@@ -65,7 +60,6 @@ export function Footer() {
             <div>
               <h4 className="font-serif text-lg tracking-wider mb-6">Support</h4>
               <ul className="space-y-4">
-                <li><button onClick={() => setActiveModal('contact')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">Contact Us</button></li>
                 <li><button onClick={() => setActiveModal('faq')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">FAQ</button></li>
                 <li><button onClick={() => setActiveModal('terms')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">Terms & Privacy Policy</button></li>
               </ul>
@@ -116,32 +110,6 @@ export function Footer() {
               <X size={24} />
             </button>
             
-            {activeModal === 'contact' && (
-              <div>
-                <h2 className="font-serif text-3xl mb-4 text-[var(--accent-color)]">Contact Us</h2>
-                <div className="grid md:grid-cols-2 gap-8 mb-8">
-                  <div>
-                    <h3 className="uppercase tracking-widest text-xs mb-2 text-[var(--text-muted)]">Email</h3>
-                    <p>naitik.270810@outlook.com</p>
-                  </div>
-                  <div>
-                    <h3 className="uppercase tracking-widest text-xs mb-2 text-[var(--text-muted)]">Phone</h3>
-                    <p>Coming Soon</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <h3 className="uppercase tracking-widest text-xs mb-2 text-[var(--text-muted)]">Address</h3>
-                    <p>New Delhi, India</p>
-                  </div>
-                </div>
-                <form onSubmit={handleContactSubmit} className="flex flex-col gap-4">
-                  <input type="text" placeholder="Your Name" required className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm py-3 px-4 focus:outline-none focus:border-[var(--accent-color)]" />
-                  <input type="email" placeholder="Your Email" required className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm py-3 px-4 focus:outline-none focus:border-[var(--accent-color)]" />
-                  <textarea placeholder="Your Message" rows={4} required className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm py-3 px-4 focus:outline-none focus:border-[var(--accent-color)] resize-none"></textarea>
-                  <button type="submit" className="bg-[var(--accent-color)] text-black font-medium tracking-widest uppercase py-3 px-6 mt-2 hover:bg-opacity-90 transition-colors rounded-sm">Send Message</button>
-                </form>
-              </div>
-            )}
-
             {activeModal === 'faq' && (
               <div>
                 <h2 className="font-serif text-3xl mb-8 text-[var(--accent-color)]">Frequently Asked Questions</h2>
