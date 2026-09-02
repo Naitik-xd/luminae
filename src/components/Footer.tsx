@@ -67,7 +67,7 @@ export function Footer() {
               <ul className="space-y-4">
                 <li><button onClick={() => setActiveModal('contact')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">Contact Us</button></li>
                 <li><button onClick={() => setActiveModal('faq')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">FAQ</button></li>
-                <li><button onClick={() => setActiveModal('terms')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">Terms of Service</button></li>
+                <li><button onClick={() => setActiveModal('terms')} className="text-[var(--text-muted)] hover:text-[var(--accent-color)] transition-colors">Terms & Privacy Policy</button></li>
               </ul>
             </div>
           </div>
@@ -76,7 +76,7 @@ export function Footer() {
             <p>&copy; {new Date().getFullYear()} Luminae Beauty. All rights reserved.</p>
             <div className="mt-4 md:mt-0 space-x-6">
               <button onClick={() => setActiveModal('terms')} className="hover:text-[var(--text-color)] transition-colors">Privacy Policy</button>
-              <button onClick={() => setActiveModal('terms')} className="hover:text-[var(--text-color)] transition-colors">Terms</button>
+              <button onClick={() => setActiveModal('terms')} className="hover:text-[var(--text-color)] transition-colors">Terms of Service</button>
             </div>
           </div>
           
@@ -176,11 +176,25 @@ export function Footer() {
 
             {activeModal === 'terms' && (
               <div>
-                <h2 className="font-serif text-3xl mb-6 text-[var(--accent-color)]">Terms of Service</h2>
+                <h2 className="font-serif text-3xl mb-6 text-[var(--accent-color)]">Terms of Service & Privacy Policy</h2>
                 <div className="prose prose-invert max-w-none text-[var(--text-muted)] leading-relaxed text-sm">
-                  <p className="mb-4">Welcome to LUMINAE. By accessing or using our platform, you agree to be bound by these Terms of Service. LUMINAE acts as a booking intermediary between clients and elite salons in New Delhi.</p>
-                  <p className="mb-4">Users must provide accurate information when booking. Appointments are subject to salon availability and confirmation. LUMINAE is not responsible for the direct service quality provided by independent partner salons, though we maintain strict vetting standards.</p>
-                  <p>In accordance with privacy policies, we secure your data and only share necessary booking details with your chosen salon. For full legal policies regarding data protection and liability, please contact our support team.</p>
+                  <h3 className="font-medium text-lg text-white mb-2 mt-4">1. Acceptance of Terms</h3>
+                  <p className="mb-4">Welcome to LUMINAE. By accessing our platform and using our AI chat features, you agree to these Terms and our Privacy practices. Our platform provides AI-driven salon recommendations and bookings in New Delhi.</p>
+                  
+                  <h3 className="font-medium text-lg text-white mb-2 mt-4">2. Privacy, Data Collection, & IP Tracking</h3>
+                  <p className="mb-4">To protect our platform from abuse, maintain service quality, and ensure the safety of our systems, we log and track your IP address when you interact with our AI Stylist. Your IP address and chat interaction events are securely stored in our Supabase database.</p>
+                  
+                  <h3 className="font-medium text-lg text-white mb-2 mt-4">3. Third-Party Logging (Discord)</h3>
+                  <p className="mb-4">We actively monitor system usage in real-time. Specific trigger events—such as initiating a chat, exceeding rate limits, or triggering moderation warnings—are transmitted to our secure, private Discord server via webhooks. These automated logs contain your IP address and the nature of the triggered event.</p>
+
+                  <h3 className="font-medium text-lg text-white mb-2 mt-4">4. Rate Limiting</h3>
+                  <p className="mb-4">To ensure fair usage, our AI Stylist limits interactions to 15 requests per 3-hour window per IP address. Exceeding this limit will result in a temporary block until the 3-hour window resets.</p>
+
+                  <h3 className="font-medium text-lg text-white mb-2 mt-4">5. Moderation & Bans</h3>
+                  <p className="mb-4">Our AI actively evaluates all messages. Sending gibberish, keyboard mashing, or nonsensical text will trigger a warning. After 3 warnings, your IP address will be automatically banned from using the AI chat for 24 hours. Furthermore, administration reserves the right to issue permanent bans manually for repeated abuse or policy violations.</p>
+
+                  <h3 className="font-medium text-lg text-white mb-2 mt-4">6. Third-Party AI (Google Gemini)</h3>
+                  <p className="mb-4">Our chat features are powered by the Google Gemini API. Your chat messages are securely transmitted to Google for processing to generate responses. By using the AI Stylist, you consent to this data processing.</p>
                 </div>
               </div>
             )}
