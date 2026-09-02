@@ -264,13 +264,16 @@ export function AIStylist() {
   const callGeminiAPI = async (chatHistory: Message[]) => {
     const bookingInstruction = "If the user says anything like book, appointment, I want to book, book a salon, schedule — you MUST immediately respond with exactly ONE message containing ONLY this exact text: 'Great! I will get your appointment booked right away. Please fill in these details:[BOOKING_FORM]'. Do NOT ask any back-and-forth questions.";
     const fullPrompt = SYSTEM_CONTEXT + "\n\n" + bookingInstruction + "\n\n" + chatHistory.map(m => `${m.role}: ${m.content}`).join("\n");
+    
+    // Extract the latest user message
+    const latestMessage = chatHistory[chatHistory.length - 1]?.content || "";
 
     const response = await fetch('/api/gemini', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ fullPrompt }),
+      body: JSON.stringify({ fullPrompt, latestMessage }),
     });
 
     if (!response.ok) {
